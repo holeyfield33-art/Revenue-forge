@@ -48,7 +48,7 @@ export default function SignupPage() {
         });
       }
 
-      router.push('/auth/login?message=Check your email to confirm your account');
+      router.push('/onboarding');
     } catch (err: any) {
       setError(err.message || 'Failed to sign up');
     } finally {

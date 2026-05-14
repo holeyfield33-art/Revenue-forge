@@ -30,11 +30,19 @@ CREATE TABLE IF NOT EXISTS projects (
   name TEXT NOT NULL,
   description TEXT,
   github_url TEXT,
+  offer_sentence TEXT,
+  offer_score INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'in_gauntlet' CHECK (status IN ('in_gauntlet', 'validated', 'dead')),
   gauntlet_start_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE projects
+  ADD COLUMN IF NOT EXISTS offer_sentence TEXT;
+
+ALTER TABLE projects
+  ADD COLUMN IF NOT EXISTS offer_score INTEGER NOT NULL DEFAULT 0;
 
 -- Outreach activities table (raw contact data)
 CREATE TABLE IF NOT EXISTS outreach_activities (

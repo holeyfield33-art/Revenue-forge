@@ -48,32 +48,56 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  const isProtectedRoute =
+    path.startsWith('/gauntlet') ||
+    path.startsWith('/dashboard') ||
+    path.startsWith('/onboarding');
+
   // If no user and trying to access protected routes, redirect to auth
-  if (!user && (path.startsWith('/gauntlet') || path.startsWith('/dashboard'))) {
+  if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
   }
 
-  // If user exists, check quota gate
-  if (user && (path.startsWith('/dashboard') || path === '/')) {
+  // If user exists, enforce onboarding -> gauntlet -> dashboard flow
+  if (user && isProtectedRoute) {
     try {
-      // Call the check_outreach_gate RPC function
+      const { data: projects, error: projectError } = await supabase
+        .from('projects')
+        .select('id, offer_score')
+        .eq('user_id', user.id)
+        .gte('offer_score', 85)
+        .order('offer_score', { ascending: false })
+        .limit(1);
+
+      if (projectError) {
+        console.error('Project gate error:', projectError);
+        return NextResponse.redirect(new URL('/onboarding', request.url));
+      }
+
+      if (!projects || projects.length === 0) {
+        if (path !== '/onboarding') {
+          return NextResponse.redirect(new URL('/onboarding', request.url));
+        }
+        return response;
+      }
+
       const { data: gateStatus, error } = await supabase.rpc('check_outreach_gate', {
         user_id_param: user.id,
       });
 
       if (error) {
         console.error('Gate check error:', error);
-        // On error, redirect to gauntlet
         return NextResponse.redirect(new URL('/gauntlet', request.url));
       }
 
-      // If quota not met, redirect to gauntlet
-      if (gateStatus && !gateStatus.quota_met && path !== '/gauntlet') {
-        return NextResponse.redirect(new URL('/gauntlet', request.url));
+      if (gateStatus && !gateStatus.quota_met) {
+        if (path !== '/gauntlet') {
+          return NextResponse.redirect(new URL('/gauntlet', request.url));
+        }
+        return response;
       }
 
-      // If on gauntlet and quota is met, redirect to dashboard
-      if (gateStatus && gateStatus.quota_met && path === '/gauntlet') {
+      if (path !== '/dashboard') {
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
     } catch (error) {

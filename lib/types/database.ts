@@ -23,6 +23,8 @@ export interface Project {
   name: string;
   description?: string;
   github_url?: string;
+  offer_sentence?: string;
+  offer_score: number;
   status: 'in_gauntlet' | 'validated' | 'dead';
   gauntlet_start_date: string;
   created_at: string;
