@@ -1,0 +1,15 @@
+node_modules/
+.env.local
+.env.*.local
+.next/
+out/
+dist/
+.DS_Store
+*.pem
+.vercel
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+.cache/
