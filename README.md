@@ -1,258 +1,238 @@
 # RevenueForge
 
-RevenueForge is a high-velocity validation and monetization command center for technical builders. It forces builders to prioritize sales over code-polishing through a structured 14-day "Gauntlet."
+RevenueForge is a validation-first SaaS for technical builders. It combines an onboarding offer gate, a daily outreach gauntlet, project management, Supabase auth, and Stripe-ready billing scaffolding into one workflow.
 
-## The Golden Rule
+The product is intentionally opinionated:
 
-**You cannot view your project dashboard, analytics, or metrics until you complete your daily sales activity.**
+- A user signs up.
+- They must define their Buyer, Product, and Offer in one sentence.
+- The sentence is graded by an LLM or mock grader.
+- If the score is below 85, they rewrite it.
+- If the score is 85 or higher, the project is created and they enter the gauntlet.
+- They must complete the daily outreach quota before reaching the dashboard.
 
-## Core Features
+## What’s Included
 
-- **The Gauntlet**: Daily outreach quota enforcement (default: 5 contacts per day)
-- **Access Gate**: Middleware-enforced quota check before dashboard access
-- **Project Management**: Track multiple projects during validation
-- **Quota Tracking**: Real-time daily outreach logging
-- **Tech-Noir UI**: Dark mode, zinc/black backgrounds, red/white/green status indicators
+- Supabase authentication with signup and login
+- Offer Gate onboarding flow at `/onboarding`
+- Middleware-based routing enforcement
+- Daily outreach gauntlet at `/gauntlet`
+- Project dashboard at `/dashboard`
+- Supabase RLS schema and RPC helpers
+- Stripe webhook scaffold for later billing work
+- Jest testing framework setup
+- TypeScript + Next.js 15 app router structure
+
+## App Flow
+
+1. User signs up at `/auth/signup`.
+2. New accounts are redirected to `/onboarding`.
+3. The user submits a one-sentence offer.
+4. The server grades the sentence.
+5. Score below 85: red feedback and retry.
+6. Score 85 or above: create the project and redirect to `/gauntlet`.
+7. The middleware checks the user’s daily outreach gate.
+8. When outreach quota is complete, the user reaches `/dashboard`.
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router, Server Actions)
-- **Styling**: Tailwind CSS + Shadcn/UI
-- **Database & Auth**: Supabase (PostgreSQL + RLS)
-- **Payments**: Stripe (for $49 tier upgrades)
-- **Infrastructure**: Coolify / Render
+- Next.js 15 with the App Router
+- React 19
+- TypeScript
+- Tailwind CSS
+- Supabase for auth and Postgres
+- Stripe integration scaffold
+- Jest and ts-jest for testing
 
-## Quick Start
+## Repository Structure
 
-### Prerequisites
+```text
+app/
+  actions.ts               Server actions for projects, outreach, and grading
+  api/
+    health/route.ts        Lightweight health check
+    webhooks/stripe/       Stripe webhook endpoint scaffold
+  auth/
+    login/page.tsx         Login form
+    signup/page.tsx        Signup form
+    layout.tsx             Auth-only layout
+  dashboard/page.tsx       Project dashboard
+  gauntlet/page.tsx        Daily outreach gate
+  onboarding/page.tsx      Offer Gate onboarding screen
+  page.tsx                 Root redirect logic
+  globals.css              Global styles
+  layout.tsx               Root layout
 
-- Node.js 18+
-- npm or yarn
-- Supabase account
-- Stripe account (for payments feature)
+components/
+  ui/                      Shared UI primitives
 
-### 1. Clone and Install
+lib/
+  supabase/
+    client.ts              Browser client helper
+    server.ts              Server client helper
+    schema.sql             Database schema, policies, and RPC functions
+  types/
+    database.ts            Shared database types
+  utils.ts                 Shared utility helpers
+
+middleware.ts               Route enforcement and gate logic
+```
+
+## Required Accounts
+
+You need accounts for the services below:
+
+- Supabase
+- Stripe
+- OpenAI, only if you want the real LLM grader instead of the built-in mock fallback
+
+## Environment Variables
+
+Copy `.env.local.example` to `.env.local` and fill in the values.
+
+### Supabase
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+
+### Stripe
+
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+
+### App
+
+- `NEXT_PUBLIC_APP_URL`
+
+### Optional AI Grader
+
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+
+## Local Setup
+
+### 1. Install Dependencies
 
 ```bash
-git clone <repo>
-cd Revenue-forge
 npm install
 ```
 
-### 2. Configure Environment
-
-Copy `.env.local.example` to `.env.local` and fill in your credentials:
+### 2. Create Environment File
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-**Required values:**
-- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anon key
-- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Stripe publishable key
-- `STRIPE_SECRET_KEY`: Stripe secret key
+Then set your values in `.env.local`.
 
-### 3. Set Up Supabase Database
+### 3. Apply the Database Schema
 
-1. Go to your Supabase dashboard
-2. Open the SQL editor
-3. Copy and paste the entire contents of `lib/supabase/schema.sql`
-4. Execute the SQL
+Open the Supabase SQL editor and run the full contents of `lib/supabase/schema.sql`.
 
-This will create:
-- `profiles` table (user tiers & quotas)
-- `daily_quota_logs` table (outreach tracking)
-- `projects` table (builder ideas)
-- `outreach_activities` table (contact records)
+That schema creates:
+
+- `profiles`
+- `daily_quota_logs`
+- `projects`
+- `outreach_activities`
 - RLS policies for all tables
-- RPC functions: `check_outreach_gate` and `log_outreach_activity`
+- RPC functions for outreach gating and activity logging
 
 ### 4. Enable Supabase Auth
 
-In Supabase dashboard:
-1. Go to Authentication → Providers
-2. Enable Email provider
-3. Configure email settings as needed
+In Supabase, go to Authentication and make sure email/password sign-in is enabled.
 
-### 5. Run Locally
+### 5. Start the Dev Server
 
 ```bash
 npm run dev
 ```
 
-Navigate to `http://localhost:3000`
+Open `http://localhost:3000`.
 
-## Project Structure
+## Database Notes
 
-```
-/workspaces/Revenue-forge
-├── app/                          # Next.js app directory
-│   ├── layout.tsx               # Root layout
-│   ├── page.tsx                 # Home (redirects based on quota)
-│   ├── globals.css              # Global styles
-│   ├── actions.ts               # Server actions
-│   ├── auth/                    # Authentication routes
-│   │   ├── login/page.tsx       # Login page
-│   │   ├── signup/page.tsx      # Sign-up page
-│   │   └── layout.tsx           # Auth layout
-│   ├── gauntlet/                # Gauntlet (quota enforcement)
-│   │   └── page.tsx             # Daily quota form
-│   └── dashboard/               # Unlocked dashboard
-│       └── page.tsx             # Project management UI
-├── components/
-│   └── ui/                      # Shadcn UI components
-│       ├── button.tsx
-│       ├── card.tsx
-│       ├── input.tsx
-│       ├── label.tsx
-│       └── dialog.tsx
-├── lib/
-│   ├── supabase/
-│   │   ├── client.ts            # Client-side Supabase
-│   │   ├── server.ts            # Server-side Supabase
-│   │   └── schema.sql           # Database schema
-│   ├── types/
-│   │   └── database.ts          # TypeScript types
-│   └── utils.ts                 # Utility functions
-├── middleware.ts                 # Next.js middleware (quota gate)
-├── package.json
-├── tsconfig.json
-├── tailwind.config.ts
-├── next.config.ts
-└── README.md
-```
+The `projects` table stores the onboarding offer gate fields:
 
-## Core Mechanical Loop (MVP)
+- `offer_sentence` for the one-sentence pitch
+- `offer_score` for the LLM or mock grade
 
-### 1. **The Lock** (Middleware)
-- User logs in
-- Middleware checks if daily outreach quota is met
-- Default quota: 5 contacts per day
+The daily outreach gauntlet still uses:
 
-### 2. **The Gate** (Input)
-- If quota unmet → user trapped on `/gauntlet`
-- Must log outbound contacts via rapid-entry form
-- Can target any platform: Email, Twitter/X, LinkedIn, Other
+- `profiles` for user tier and quota data
+- `daily_quota_logs` for daily progress
+- `outreach_activities` for each logged contact
 
-### 3. **The Reward** (Output)
-- After 5th contact logged → gate opens
-- User gains access to `/dashboard`
-- Can manage projects, track pipeline, prepare for next day's gauntlet
+## Key Routes
 
-## Database Schema
+- `/` redirects users based on auth, onboarding, and outreach state
+- `/auth/signup` creates the user profile and sends them to onboarding
+- `/onboarding` grades the offer sentence
+- `/gauntlet` handles daily outreach logging
+- `/dashboard` shows projects and unlocked status
 
-### profiles
-```sql
-- id (UUID, PK)
-- user_id (UUID, FK to auth.users)
-- tier (free | pro | max)
-- daily_quota (INT, default: 5)
-- stripe_customer_id (TEXT, optional)
-- created_at, updated_at
+## Offer Gate Behavior
+
+The onboarding page sends the sentence to `gradeOffer` in `app/actions.ts`.
+
+If an `OPENAI_API_KEY` is present, the app calls the OpenAI chat completions API with a strict JSON response format. If no key is available, it falls back to a mock score between 70 and 95.
+
+Rules:
+
+- Score below 85: show harsh feedback and require a rewrite
+- Score 85 or above: create the project and continue to the gauntlet
+
+## Middleware Behavior
+
+`middleware.ts` enforces the route order:
+
+1. Unauthenticated users go to `/auth/login`
+2. Authenticated users without an approved project go to `/onboarding`
+3. Authenticated users with an approved project but incomplete daily outreach go to `/gauntlet`
+4. Users who passed both gates reach `/dashboard`
+
+## Testing
+
+Jest is installed and wired to `npm test`.
+
+Run tests with:
+
+```bash
+npm test
 ```
 
-### daily_quota_logs
-```sql
-- id (UUID, PK)
-- user_id (UUID, FK)
-- date (DATE)
-- outreach_count (INT)
-- UNIQUE(user_id, date)
+Run TypeScript checks with:
+
+```bash
+npx tsc --noEmit
 ```
-
-### projects
-```sql
-- id (UUID, PK)
-- user_id (UUID, FK)
-- name (TEXT)
-- description (TEXT)
-- github_url (TEXT)
-- status (in_gauntlet | validated | dead)
-- gauntlet_start_date (TIMESTAMP)
-- created_at, updated_at
-```
-
-### outreach_activities
-```sql
-- id (UUID, PK)
-- user_id (UUID, FK)
-- project_id (UUID, FK)
-- platform (email | twitter | linkedin | other)
-- contact_info (TEXT)
-- date (DATE)
-- notes (TEXT)
-- created_at
-```
-
-## RPC Functions
-
-### check_outreach_gate(user_id_param UUID)
-Returns JSON with:
-- `quota_met` (boolean)
-- `daily_quota` (int)
-- `today_count` (int)
-- `remaining` (int)
-
-### log_outreach_activity(...)
-Logs an outreach activity and increments daily quota count.
 
 ## Deployment
 
-### Option 1: Coolify
-1. Connect your GitHub repository
-2. Create a new application
-3. Select Node.js 18+
-4. Set environment variables
-5. Deploy
+### Coolify or Render
 
-### Option 2: Render
-1. Push code to GitHub
-2. Create new Web Service on Render
-3. Connect GitHub repository
-4. Set build command: `npm run build`
-5. Set start command: `npm start`
-6. Add environment variables
-7. Deploy
+1. Connect the GitHub repository.
+2. Set all environment variables from this README.
+3. Point `NEXT_PUBLIC_APP_URL` at your deployed URL.
+4. Apply the Supabase schema to your production project.
+5. Deploy the app.
 
-### Option 3: Vercel
-1. Import project to Vercel
-2. Set environment variables
-3. Deploy
+### Stripe Webhook
 
-## Stripe Integration (Phase 2)
+If you enable billing later, point your Stripe webhook at `/api/webhooks/stripe` and set `STRIPE_WEBHOOK_SECRET`.
 
-For tier upgrades (Pro/Max):
-- Create Stripe products for each tier
-- Add webhook handler for payment confirmation
-- Update profile tier on successful payment
-- Implement custom quota per tier
+## Troubleshooting
 
-## Development Roadmap
+- If the app says Supabase credentials are missing, check `.env.local`.
+- If onboarding fails, verify `OPENAI_API_KEY` or use the mock fallback.
+- If dashboard access loops back to onboarding, make sure a project exists with `offer_score >= 85`.
+- If the gauntlet loops back to login, verify auth cookies and Supabase session handling.
 
-- [ ] **Phase 1** (MVP - Done): Core gauntlet + dashboard
-- [ ] **Phase 2**: Stripe integration + tier system
-- [ ] **Phase 3**: Analytics & revenue tracking
-- [ ] **Phase 4**: Team collaboration
-- [ ] **Phase 5**: API for integrations
+## Current Status
 
-## Key Design Decisions
-
-1. **Middleware-First Quota Enforcement**: Check happens at request level, not page level
-2. **Server Actions for Data**: All mutations use Server Actions for security
-3. **RLS for Row-Level Security**: All data access is user-isolated
-4. **RPC Functions**: Complex business logic in database layer
-5. **Dark Mode Tech-Noir**: Aesthetic aligns with builder/hacker identity
-
-## Support & Issues
-
-For issues, open a GitHub issue with:
-- Environment details
-- Steps to reproduce
-- Expected vs actual behavior
-- Screenshots if applicable
-
-## License
-
-TBD
+- Offer Gate onboarding is implemented
+- Daily outreach gauntlet is implemented
+- Dashboard and project management are implemented
+- Stripe webhook is intentionally a scaffold endpoint for now

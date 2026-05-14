@@ -2,7 +2,13 @@ import { redirect } from 'next/navigation';
 import { createServerClient_ } from '@/lib/supabase/server';
 
 export default async function Page() {
-  const supabase = await createServerClient_();
+  let supabase;
+
+  try {
+    supabase = await createServerClient_();
+  } catch {
+    redirect('/auth/login');
+  }
 
   const {
     data: { user },
