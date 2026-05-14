@@ -11,7 +11,8 @@ export async function createServerClient_() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase credentials');
+    // Return a dummy client that will fail gracefully — env not configured yet
+    return createClient('https://placeholder.supabase.co', 'placeholder');
   }
 
   const client = createClient(supabaseUrl, supabaseKey);

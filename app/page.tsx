@@ -2,7 +2,8 @@ import { redirect } from 'next/navigation';
 import { createServerClient_ } from '@/lib/supabase/server';
 
 export default async function Page() {
-  const supabase = await createServerClient_();
+  try {
+    const supabase = await createServerClient_();
   
   const {
     data: { user },
@@ -27,5 +28,8 @@ export default async function Page() {
     redirect('/gauntlet');
   } else {
     redirect('/dashboard');
+  }
+  } catch {
+    redirect('/auth/login');
   }
 }
