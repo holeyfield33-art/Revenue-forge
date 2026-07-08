@@ -35,7 +35,7 @@ export default async function Page() {
     redirect('/onboarding');
   }
 
-  const { data: gateStatus, error } = await supabase.rpc('check_outreach_gate', {
+  const { data: gateStatus, error } = await supabase.rpc('check_milestone_gate', {
     user_id_param: user.id,
   });
 
@@ -44,7 +44,7 @@ export default async function Page() {
     redirect('/auth/login');
   }
 
-  if (gateStatus && !gateStatus.quota_met) {
+  if (gateStatus && !gateStatus.dashboard_unlocked) {
     redirect('/gauntlet');
   }
 

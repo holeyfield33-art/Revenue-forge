@@ -6,7 +6,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { checkQuotaStatus, logOutreachActivity, getProjects } from '@/app/actions';
+import {
+  checkMilestoneStatus,
+  logOutreachActivity,
+  upgradeOutreachOutcome,
+  getOutreachActivities,
+  getProjects,
+} from '@/app/actions';
+import {
+  canUpgradeOutcome,
+  computeMilestones,
+  MILESTONE_TARGETS,
+  type OutreachOutcome,
+} from '@/lib/milestones';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertCircle, CheckCircle2, Lock } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Circle, Lock } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,19 +37,39 @@ interface Project {
   status: string;
 }
 
-interface QuotaStatus {
-  quota_met: boolean;
-  daily_quota: number;
-  today_count: number;
-  remaining: number;
+interface MilestoneStatus {
+  m1: boolean;
+  m2: boolean;
+  m3: boolean;
+  m4: boolean;
+  sent: number;
+  replies: number;
+  commitments: number;
+  dashboard_unlocked: boolean;
 }
+
+interface OutreachEntry {
+  id: string;
+  platform: string;
+  contact_info: string;
+  outcome: OutreachOutcome;
+  created_at: string;
+}
+
+const OUTCOME_LABELS: Record<OutreachOutcome, string> = {
+  sent: 'Sent',
+  reply: 'Reply',
+  commitment: 'Commitment',
+};
 
 export default function GauntletPage() {
   const router = useRouter();
-  const [quotaStatus, setQuotaStatus] = useState<QuotaStatus | null>(null);
+  const [status, setStatus] = useState<MilestoneStatus | null>(null);
+  const [entries, setEntries] = useState<OutreachEntry[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [upgradingId, setUpgradingId] = useState<string>('');
   const [error, setError] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
@@ -45,21 +77,22 @@ export default function GauntletPage() {
   const [selectedProject, setSelectedProject] = useState<string>('');
   const [contactPlatform, setContactPlatform] = useState<'email' | 'twitter' | 'linkedin' | 'other'>('email');
   const [contactInfo, setContactInfo] = useState('');
+  const [contactOutcome, setContactOutcome] = useState<OutreachOutcome>('sent');
   const [contactNotes, setContactNotes] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Load quota status
-        const quotaResult = await checkQuotaStatus();
-        if (quotaResult.error) {
-          setError(quotaResult.error);
+        // Load milestone status
+        const statusResult = await checkMilestoneStatus();
+        if (statusResult.error) {
+          setError(statusResult.error);
           return;
         }
-        setQuotaStatus(quotaResult.data);
+        setStatus(statusResult.data);
 
-        // Redirect if quota is already met
-        if (quotaResult.data.quota_met) {
+        // Redirect if the dashboard is already unlocked
+        if (statusResult.data.dashboard_unlocked) {
           router.push('/dashboard');
           return;
         }
@@ -73,6 +106,14 @@ export default function GauntletPage() {
           if (projectsResult.data && projectsResult.data.length > 0) {
             setSelectedProject(projectsResult.data[0].id);
           }
+        }
+
+        // Load logged outreach entries
+        const entriesResult = await getOutreachActivities();
+        if (entriesResult.error) {
+          console.error('Failed to load outreach entries');
+        } else {
+          setEntries(entriesResult.data || []);
         }
       } finally {
         setLoading(false);
@@ -97,6 +138,7 @@ export default function GauntletPage() {
         projectId: selectedProject,
         platform: contactPlatform,
         contactInfo,
+        outcome: contactOutcome,
         notes: contactNotes || undefined,
       });
 
@@ -105,21 +147,37 @@ export default function GauntletPage() {
         return;
       }
 
-      // Update quota status
+      // The RPC returns the updated milestone state
       if (result.data) {
-        setQuotaStatus({
-          quota_met: result.data.quota_met,
-          daily_quota: quotaStatus?.daily_quota || 5,
-          today_count: result.data.today_count,
-          remaining: result.data.remaining,
+        setStatus({
+          m1: result.data.m1,
+          m2: result.data.m2,
+          m3: result.data.m3,
+          m4: result.data.m4,
+          sent: result.data.sent,
+          replies: result.data.replies,
+          commitments: result.data.commitments,
+          dashboard_unlocked: result.data.dashboard_unlocked,
         });
+
+        setEntries([
+          {
+            id: result.data.activity_id,
+            platform: contactPlatform,
+            contact_info: contactInfo,
+            outcome: contactOutcome,
+            created_at: new Date().toISOString(),
+          },
+          ...entries,
+        ]);
 
         // Reset form
         setContactInfo('');
         setContactNotes('');
+        setContactOutcome('sent');
 
-        // If quota is met, redirect to dashboard
-        if (result.data.quota_met) {
+        // If the dashboard just unlocked, redirect
+        if (result.data.dashboard_unlocked) {
           setTimeout(() => {
             router.push('/dashboard');
           }, 500);
@@ -127,6 +185,29 @@ export default function GauntletPage() {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleUpgrade = async (entry: OutreachEntry, outcome: 'reply' | 'commitment') => {
+    setError('');
+    setUpgradingId(entry.id);
+
+    try {
+      const result = await upgradeOutreachOutcome(entry.id, outcome);
+
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      setEntries(entries.map((e) => (e.id === entry.id ? { ...e, outcome } : e)));
+
+      const statusResult = await checkMilestoneStatus();
+      if (statusResult.data) {
+        setStatus(statusResult.data);
+      }
+    } finally {
+      setUpgradingId('');
     }
   };
 
@@ -141,9 +222,46 @@ export default function GauntletPage() {
     );
   }
 
-  const progressPercent = quotaStatus
-    ? Math.min(100, (quotaStatus.today_count / quotaStatus.daily_quota) * 100)
-    : 0;
+  const ladder = status
+    ? computeMilestones(status.m1, {
+        sent: status.sent,
+        replies: status.replies,
+        commitments: status.commitments,
+      })
+    : null;
+
+  const milestones = ladder
+    ? [
+        {
+          key: 'm1',
+          name: 'M1 · Forge the Offer',
+          requirement: 'Score an offer 85 or higher',
+          progress: ladder.m1 ? 'Done' : 'Locked',
+          achieved: ladder.m1,
+        },
+        {
+          key: 'm2',
+          name: 'M2 · First Sparks',
+          requirement: `Log ${MILESTONE_TARGETS.sent} outreach contacts — unlocks the dashboard`,
+          progress: `${ladder.sent} / ${MILESTONE_TARGETS.sent}`,
+          achieved: ladder.m2,
+        },
+        {
+          key: 'm3',
+          name: 'M3 · Conversations',
+          requirement: `Get ${MILESTONE_TARGETS.replies} replies (commitments count)`,
+          progress: `${ladder.replies} / ${MILESTONE_TARGETS.replies}`,
+          achieved: ladder.m3,
+        },
+        {
+          key: 'm4',
+          name: 'M4 · Proof of Demand',
+          requirement: `Land ${MILESTONE_TARGETS.commitments} commitment`,
+          progress: `${ladder.commitments} / ${MILESTONE_TARGETS.commitments}`,
+          achieved: ladder.m4,
+        },
+      ]
+    : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-black p-4">
@@ -155,43 +273,56 @@ export default function GauntletPage() {
             <h1 className="text-4xl font-bold text-white">THE GAUNTLET</h1>
           </div>
           <p className="text-zinc-400">
-            Complete your daily outreach quota to unlock your dashboard
+            Climb the milestone ladder to unlock your dashboard
           </p>
         </div>
 
-        {/* Quota Status */}
-        {quotaStatus && (
+        {/* Milestone Ladder */}
+        {ladder && (
           <Card className="bg-zinc-900 border-zinc-800 mb-6">
             <CardHeader>
-              <CardTitle>Daily Quota Progress</CardTitle>
+              <CardTitle>Milestone Ladder</CardTitle>
+              <CardDescription>
+                Cumulative progress — nothing resets, records only harden
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-zinc-400">
-                  {quotaStatus.today_count} / {quotaStatus.daily_quota} contacts
-                </span>
-                <span className="text-sm font-semibold text-green-400">
-                  {quotaStatus.remaining} remaining
-                </span>
-              </div>
-
-              {/* Progress bar */}
-              <div className="w-full bg-zinc-800 rounded-full h-3 overflow-hidden">
+            <CardContent className="space-y-3">
+              {milestones.map((milestone) => (
                 <div
-                  className="bg-gradient-to-r from-red-500 to-green-500 h-full transition-all duration-300 ease-out"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
+                  key={milestone.key}
+                  className={`flex items-center justify-between p-3 rounded border ${
+                    milestone.achieved
+                      ? 'bg-green-950 border-green-800 text-green-200'
+                      : 'bg-zinc-800 border-zinc-700 text-zinc-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {milestone.achieved ? (
+                      <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+                    ) : (
+                      <Circle className="w-5 h-5 text-zinc-500 shrink-0" />
+                    )}
+                    <div>
+                      <p className="font-semibold">{milestone.name}</p>
+                      <p className="text-xs text-zinc-400">{milestone.requirement}</p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold">{milestone.progress}</span>
+                </div>
+              ))}
 
-              {quotaStatus.quota_met ? (
+              {ladder.dashboard_unlocked ? (
                 <div className="flex items-center gap-2 p-3 bg-green-950 border border-green-800 rounded text-green-200">
                   <CheckCircle2 className="w-5 h-5" />
-                  <span>Quota complete! Unlocking dashboard...</span>
+                  <span>Dashboard unlocked! Redirecting...</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 p-3 bg-red-950 border border-red-800 rounded text-red-200">
                   <AlertCircle className="w-5 h-5" />
-                  <span>Log {quotaStatus.remaining} more contacts to proceed</span>
+                  <span>
+                    Log {Math.max(0, MILESTONE_TARGETS.sent - ladder.sent)} more contacts to
+                    unlock the dashboard
+                  </span>
                 </div>
               )}
             </CardContent>
@@ -199,7 +330,7 @@ export default function GauntletPage() {
         )}
 
         {/* Main Form */}
-        {!quotaStatus?.quota_met && (
+        {!ladder?.dashboard_unlocked && (
           <Card className="bg-zinc-900 border-zinc-800">
             <CardHeader>
               <CardTitle>Log Outreach Contact</CardTitle>
@@ -289,6 +420,21 @@ export default function GauntletPage() {
                   />
                 </div>
 
+                {/* Outcome */}
+                <div className="space-y-2">
+                  <Label htmlFor="outcome">Outcome</Label>
+                  <select
+                    id="outcome"
+                    value={contactOutcome}
+                    onChange={(e) => setContactOutcome(e.target.value as OutreachOutcome)}
+                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                  >
+                    <option value="sent">Sent</option>
+                    <option value="reply">Got a reply</option>
+                    <option value="commitment">Got a commitment</option>
+                  </select>
+                </div>
+
                 {/* Notes */}
                 <div className="space-y-2">
                   <Label htmlFor="notes">Notes (optional)</Label>
@@ -313,10 +459,59 @@ export default function GauntletPage() {
           </Card>
         )}
 
+        {/* Logged Entries */}
+        {entries.length > 0 && (
+          <Card className="bg-zinc-900 border-zinc-800 mt-6">
+            <CardHeader>
+              <CardTitle>Logged Contacts</CardTitle>
+              <CardDescription>
+                Upgrade an entry when a contact replies or commits
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {entries.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center justify-between gap-3 p-3 bg-zinc-800 border border-zinc-700 rounded"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-white truncate">{entry.contact_info}</p>
+                    <p className="text-xs text-zinc-400">
+                      {entry.platform} · {OUTCOME_LABELS[entry.outcome]}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {canUpgradeOutcome(entry.outcome, 'reply') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={upgradingId === entry.id}
+                        onClick={() => handleUpgrade(entry, 'reply')}
+                      >
+                        Got reply
+                      </Button>
+                    )}
+                    {canUpgradeOutcome(entry.outcome, 'commitment') && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={upgradingId === entry.id}
+                        onClick={() => handleUpgrade(entry, 'commitment')}
+                      >
+                        Committed
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Footer Message */}
         <div className="mt-8 text-center text-zinc-500 text-sm">
           <p>
-            The Gauntlet is your daily ritual. No dashboard. No metrics. Only results.
+            The Gauntlet is proof of progress. No dashboard. No metrics. Only results.
           </p>
           <p className="mt-2">
             Each contact brings you closer to unlocking the command center.
