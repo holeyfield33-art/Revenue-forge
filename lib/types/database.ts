@@ -1,9 +1,6 @@
-export type UserTier = 'free' | 'pro' | 'max';
-
 export interface Profile {
   id: string;
   user_id: string;
-  tier: UserTier;
   daily_quota: number;
   created_at: string;
   updated_at: string;
