@@ -21,22 +21,7 @@
 1. RLS is enabled by default for all tables in schema.sql
 2. RPC functions are created by the schema.sql execution
 
-### 2. Stripe Configuration
-
-#### Create Stripe Account
-1. Go to [stripe.com](https://stripe.com)
-2. Create account and verify email
-3. Go to Dashboard → API keys
-4. Copy Publishable Key and Secret Key
-5. Save to environment variables
-
-#### Create Products
-In Stripe Dashboard → Products, create:
-- **Free** (no upgrade needed)
-- **Pro** ($49/month, quota: 20/day)
-- **Max** ($99/month, quota: 50/day)
-
-### 3. Environment Variables
+### 2. Environment Variables
 
 Create `.env.local`:
 ```
@@ -45,13 +30,12 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxxx...
 SUPABASE_SERVICE_ROLE_KEY=eyJxxx...
 
-# Stripe
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
-STRIPE_SECRET_KEY=sk_test_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Optional AI grader
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4o-mini
 ```
 
 ## Local Development
@@ -139,10 +123,10 @@ CMD ["npm", "start"]
 
 - [ ] All environment variables configured
 - [ ] Supabase project created and schema applied
-- [ ] Stripe products created
 - [ ] Email authentication tested
-- [ ] Quota gate tested (login, check quota, log outreach)
-- [ ] Dashboard loads after quota met
+- [ ] Offer Gate tested (signup, submit offer, score 85+ creates project)
+- [ ] Milestone gate tested (log 5 contacts, dashboard unlocks)
+- [ ] Outcome upgrades tested (reply/commitment, downgrades rejected)
 - [ ] Project CRUD operations working
 - [ ] Database backups enabled
 - [ ] Error logging configured
@@ -161,11 +145,6 @@ CMD ["npm", "start"]
 - Set up error tracking (Sentry, LogRocket)
 - Monitor API response times
 - Track user signup/conversion funnel
-
-### Stripe
-- Monitor payment failures
-- Review webhook delivery status
-- Check for declined transactions
 
 ## Scaling Considerations
 
@@ -195,15 +174,10 @@ CMD ["npm", "start"]
 - Check RLS policies are correctly set
 - Ensure user is authenticated
 
-### "Middleware not enforcing quota"
+### "Middleware not enforcing the milestone gate"
 - Check middleware.ts is in root directory
-- Verify RPC function exists
+- Verify the check_milestone_gate RPC function exists
 - Check authentication context in middleware
-
-### "Stripe webhook not firing"
-- Verify STRIPE_WEBHOOK_SECRET is correct
-- Check webhook endpoint is registered
-- Review Stripe dashboard event logs
 
 ## Rollback Plan
 

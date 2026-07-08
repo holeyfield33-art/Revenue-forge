@@ -4,7 +4,7 @@
 
 ### Phase 0: Core MVP ✅ COMPLETE
 
-This is the foundation - everything needed to enforce the daily gauntlet and unlock the dashboard.
+This is the foundation - everything needed to enforce the gauntlet's milestone ladder and unlock the dashboard.
 
 #### Implemented Features
 
@@ -15,29 +15,39 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 - [x] Logout functionality
 - [x] Protected routes via middleware
 
-**The Gauntlet (Daily Quota Enforcement)**
-- [x] Middleware that checks quota before dashboard access
-- [x] Configurable daily quota (default: 5)
+**The Offer Gate (Onboarding)**
+- [x] One-sentence Buyer/Product/Offer submission
+- [x] LLM grading via OpenAI, with a mock fallback when no key is set
+- [x] Score below 85 requires a rewrite
+- [x] Score 85 or above creates the project and enters the gauntlet
+
+**The Gauntlet (Milestone Ladder)**
+- [x] Middleware that checks the milestone gate before dashboard access
+- [x] Cumulative milestones — no daily reset:
+  - M1 Forge the Offer: a project scored 85+
+  - M2 First Sparks: 5 logged outreach contacts (unlocks the dashboard)
+  - M3 Conversations: 3 replies (commitments count as replies)
+  - M4 Proof of Demand: 1 commitment
 - [x] Rapid-entry form for logging outreach contacts
 - [x] Multi-platform support: Email, Twitter/X, LinkedIn, Other
+- [x] Outcome per contact: sent, reply, or commitment
+- [x] Upgrade-only outcome transitions (records only harden; downgrades rejected)
 - [x] Optional notes field for each contact
-- [x] Real-time progress indicator (0/5 to 5/5)
-- [x] Quota reset at midnight (database-driven)
-- [x] Automatic redirect to dashboard when quota met
+- [x] Milestone ladder with live counts
+- [x] Automatic redirect to dashboard when the gate opens
 
 **Project Management**
 - [x] Create projects during gauntlet
 - [x] List projects on dashboard
-- [x] Edit project details
 - [x] Delete projects
 - [x] Project status tracking (in_gauntlet, validated, dead)
 - [x] GitHub URL linking
 
 **Database & Security**
-- [x] PostgreSQL schema with 4 core tables
+- [x] PostgreSQL schema with 3 core tables
 - [x] Row-Level Security (RLS) for all tables
-- [x] RPC functions for quota checking
-- [x] RPC functions for logging activities
+- [x] RPC function for milestone checking
+- [x] RPC functions for logging activities and upgrading outcomes
 - [x] Indexed queries for performance
 - [x] Foreign key relationships
 
@@ -45,42 +55,25 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 - [x] Tech-noir dark mode aesthetic
 - [x] Zinc/black backgrounds with red accents
 - [x] Responsive design for mobile/tablet/desktop
-- [x] Real-time progress visualization
+- [x] Milestone ladder visualization
 - [x] Status badges (in_gauntlet, validated, dead)
 - [x] Dialog modals for project creation
 - [x] Error messaging
 - [x] Loading states
 
----
-
-### Phase 1: Stripe Integration & Tiers
-
-**Planned Features**
-- [ ] Stripe product integration
-- [ ] Checkout flow for tier upgrades
-- [ ] Webhook handling for payment confirmations
-- [ ] Profile tier updates (Free → Pro → Max)
-- [ ] Dynamic quota per tier:
-  - Free: 5/day
-  - Pro: 20/day
-  - Max: 50/day
-- [ ] Subscription management UI
-- [ ] Payment method management
-- [ ] Invoice history
-
-**Estimated Timeline**: 2 weeks
+**Testing**
+- [x] Jest unit tests for the milestone math (`lib/milestones.test.ts`)
 
 ---
 
-### Phase 2: Analytics & Insights
+### Phase 1: Analytics & Insights
 
 **Planned Features**
-- [ ] Daily outreach count charts
+- [ ] Outreach count charts
 - [ ] Contact conversion funnel
 - [ ] Project status breakdown
 - [ ] Top contact platforms (pie chart)
 - [ ] Streak counter (consecutive days)
-- [ ] 14-day gauntlet progress tracker
 - [ ] Export outreach data (CSV)
 - [ ] Analytics dashboard
 - [ ] Weekly summary emails
@@ -89,7 +82,7 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 
 ---
 
-### Phase 3: Team Collaboration
+### Phase 2: Team Collaboration
 
 **Planned Features**
 - [ ] Team workspaces
@@ -105,7 +98,7 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 
 ---
 
-### Phase 4: CRM Integration & Automations
+### Phase 3: CRM Integration & Automations
 
 **Planned Features**
 - [ ] HubSpot integration
@@ -121,7 +114,7 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 
 ---
 
-### Phase 5: Mobile App
+### Phase 4: Mobile App
 
 **Planned Features**
 - [ ] iOS native app
@@ -136,7 +129,7 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 
 ---
 
-### Phase 6: Advanced Features
+### Phase 5: Advanced Features
 
 **Planned Features**
 - [ ] AI-powered outreach suggestions
@@ -155,10 +148,11 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 ## Technical Debt & Improvements
 
 ### Code Quality
-- [ ] Add comprehensive test suite (Jest + React Testing Library)
+- [ ] Expand the test suite beyond milestone math (React Testing Library)
 - [ ] Add E2E tests (Cypress)
 - [ ] Add Storybook for component documentation
 - [ ] Improve error boundaries
+- [ ] Wire up project editing on the dashboard (button is currently a stub)
 
 ### Performance
 - [ ] Implement database connection pooling
@@ -176,7 +170,6 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 - [ ] Set up WAF rules
 
 ### UX/Design
-- [ ] Add onboarding flow
 - [ ] Implement tour guide
 - [ ] Add keyboard shortcuts
 - [ ] Improve accessibility (WCAG 2.1 AA)
@@ -188,7 +181,6 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 - [ ] Architecture decision records (ADRs)
 - [ ] Video tutorials
 - [ ] Blog posts
-- [ ] Contributing guide
 
 ---
 
@@ -215,14 +207,13 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 
 ## Known Limitations (Phase 0)
 
-1. **Single User Only**: Team features in Phase 3
-2. **No Payment**: Stripe in Phase 1
-3. **No Analytics**: Coming in Phase 2
-4. **Manual Project Creation**: Auto-sync in Phase 4
-5. **No Mobile App**: Native apps in Phase 5
-6. **No Notifications**: Email/push in Phase 4-5
-7. **No Export**: Coming in Phase 2
-8. **No Custom Quotas**: Phase 1
+1. **Single User Only**: Team features in Phase 2
+2. **No Analytics**: Coming in Phase 1
+3. **Manual Project Creation**: Auto-sync in Phase 3
+4. **No Mobile App**: Native apps in Phase 4
+5. **No Notifications**: Email/push in Phase 3-4
+6. **No Export**: Coming in Phase 1
+7. **No Project Editing**: Dashboard edit button is a stub
 
 ---
 
@@ -253,4 +244,4 @@ This is the foundation - everything needed to enforce the daily gauntlet and unl
 
 Check back monthly for updated timelines and progress on current phases.
 
-Last Updated: May 2026
+Last Updated: July 2026
