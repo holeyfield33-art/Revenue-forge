@@ -43,8 +43,6 @@ export default function SignupPage() {
       if (data.user) {
         await supabase.from('profiles').insert({
           user_id: data.user.id,
-          tier: 'free',
-          daily_quota: 5,
         });
       }
 

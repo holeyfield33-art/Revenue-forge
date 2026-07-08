@@ -7,9 +7,9 @@
 **Infrastructure**
 - [ ] Supabase project created and verified
 - [ ] Database schema applied successfully
-- [ ] All 4 tables created (profiles, daily_quota_logs, projects, outreach_activities)
+- [ ] All 3 tables created (profiles, projects, outreach_activities)
 - [ ] RLS policies enabled on all tables
-- [ ] RPC functions created (check_outreach_gate, log_outreach_activity)
+- [ ] RPC functions created (check_milestone_gate, log_outreach_activity, upgrade_outreach_outcome)
 - [ ] Indexes created for performance
 - [ ] Automated backups enabled
 - [ ] Point-in-time recovery verified
@@ -29,24 +29,27 @@
 - [ ] TypeScript compiles without errors
 - [ ] All dependencies installed
 - [ ] Next.js build succeeds: `npm run build`
+- [ ] Unit tests pass: `npm test`
 - [ ] Development server runs: `npm run dev`
 - [ ] No console errors in dev tools
 
 **Testing**
 - [ ] Signup flow works (test account created)
-- [ ] Profile auto-created with free tier
+- [ ] Profile auto-created
 - [ ] Login/logout works
-- [ ] Gauntlet page loads when quota not met
+- [ ] Offer Gate grades the sentence and requires 85+
+- [ ] Score 85+ creates the project and enters the gauntlet
+- [ ] Gauntlet page loads while the dashboard is locked
 - [ ] Can create project in gauntlet
-- [ ] Can log outreach contacts
-- [ ] Progress counter updates correctly
-- [ ] Dashboard loads after quota complete
+- [ ] Can log outreach contacts with an outcome
+- [ ] Milestone ladder counts update correctly
+- [ ] Dashboard loads after M1 and M2 complete (5 contacts)
+- [ ] Before 5 contacts, /dashboard redirects to /gauntlet
+- [ ] Outcome upgrades work; downgrades rejected
 - [ ] Dashboard project list shows created projects
 - [ ] Can create project from dashboard
-- [ ] Can edit project
 - [ ] Can delete project
-- [ ] Daily quota resets (manually tested)
-- [ ] Middleware enforces quota correctly
+- [ ] Middleware enforces the milestone gate correctly
 
 **UI/UX**
 - [ ] Mobile responsive (test on mobile browser)
@@ -86,7 +89,6 @@
 - [ ] ARCHITECTURE.md detailed
 - [ ] FEATURES.md roadmap clear
 - [ ] Code comments present
-- [ ] JSDoc comments added
 
 ---
 
@@ -139,6 +141,7 @@ OR
 - [ ] Visit domain (should load)
 - [ ] Signup works
 - [ ] Login works
+- [ ] Offer Gate functional
 - [ ] Gauntlet functional
 - [ ] Dashboard functional
 - [ ] No console errors
@@ -151,11 +154,10 @@ OR
 
 **User Onboarding**
 - [ ] First user created
-- [ ] First project created
+- [ ] First offer passed the gate
 - [ ] First outreach logged
-- [ ] Dashboard unlocked
-- [ ] Test quota reset at midnight
-- [ ] Next day quota shows as 0/5
+- [ ] Dashboard unlocked at 5 contacts
+- [ ] First outcome upgraded to reply or commitment
 
 **Monitoring**
 - [ ] Check server logs for errors
@@ -163,7 +165,6 @@ OR
 - [ ] Check uptime (status page)
 - [ ] Monitor error rates
 - [ ] Review active users
-- [ ] Check payment processing (if enabled)
 
 **Support**
 - [ ] Issue template ready
@@ -177,7 +178,7 @@ OR
 ### Week-1 Goals
 
 - [ ] 50+ signups
-- [ ] 80%+ quota completion rate
+- [ ] 80%+ of active users reach M2
 - [ ] 100% uptime
 - [ ] <1% error rate
 - [ ] Performance within targets
@@ -194,7 +195,7 @@ If any of these are true, **DO NOT LAUNCH**:
 - [ ] TypeScript errors not fixed
 - [ ] Database not responding
 - [ ] Auth not working
-- [ ] Middleware not enforcing quota
+- [ ] Middleware not enforcing the milestone gate
 - [ ] Critical security vulnerability
 - [ ] Major performance issue
 - [ ] Data corruption detected
@@ -225,7 +226,7 @@ If any of these are true, **DO NOT LAUNCH**:
 - [ ] Collect user feedback
 - [ ] Review analytics
 - [ ] Update documentation based on feedback
-- [ ] Plan Phase 1 (Stripe integration)
+- [ ] Plan Phase 1 (analytics)
 - [ ] Communicate roadmap to users
 
 ---
@@ -244,6 +245,9 @@ grep SUPABASE .env.local | wc -l  # Should be 3
 
 echo "Building..."
 npm run build
+
+echo "Running tests..."
+npm test
 
 echo "Checking TypeScript..."
 npx tsc --noEmit

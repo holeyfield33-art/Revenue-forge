@@ -22,7 +22,7 @@ Thanks for your interest in contributing! Here's how to help.
 
 ```
 feature/add-user-profile       # New feature
-bugfix/quota-calculation       # Bug fix
+bugfix/milestone-calculation   # Bug fix
 docs/update-api-reference      # Documentation
 refactor/simplify-middleware   # Code improvement
 test/add-unit-tests           # Tests
@@ -32,8 +32,8 @@ test/add-unit-tests           # Tests
 
 ```bash
 # Good
-git commit -m "feat: add stripe integration"
-git commit -m "fix: correct quota gate logic for edge case"
+git commit -m "feat: add outreach analytics"
+git commit -m "fix: correct milestone gate logic for edge case"
 git commit -m "docs: update SETUP_GUIDE.md"
 
 # Bad
@@ -104,11 +104,11 @@ Before submitting PR:
 
 # 3. Test dashboard
 # - Create project
-# - Edit project
 # - Delete project
 
-# 4. Test quota reset
-# Manually update DB and test
+# 4. Test outcome upgrades
+# - Mark a contact as reply, then commitment
+# - Verify downgrades are rejected
 ```
 
 ## Pull Request Process
@@ -119,8 +119,8 @@ Before submitting PR:
 [Feature/Bugfix/Docs] Brief description
 
 Example:
-[Feature] Add Stripe payment integration
-[Bugfix] Fix quota gate for midnight edge case
+[Feature] Add outreach analytics dashboard
+[Bugfix] Fix milestone gate edge case
 [Docs] Update API reference for new endpoints
 ```
 
@@ -187,12 +187,12 @@ When reviewing code, check for:
 
 Example migration:
 ```sql
--- migrations/001_add_paid_tier.sql
+-- migrations/001_add_display_name.sql
 -- Up
-ALTER TABLE profiles ADD COLUMN stripe_customer_id TEXT UNIQUE;
+ALTER TABLE profiles ADD COLUMN display_name TEXT;
 
 -- Down
-ALTER TABLE profiles DROP COLUMN stripe_customer_id;
+ALTER TABLE profiles DROP COLUMN display_name;
 ```
 
 ## Documentation Standards
@@ -208,9 +208,9 @@ All features must be documented:
 Example JSDoc:
 ```typescript
 /**
- * Logs an outreach activity and updates daily quota
+ * Logs an outreach activity and returns the updated milestone state
  * @param input - Activity details
- * @returns Success result with updated quota status
+ * @returns Success result with updated milestone status
  */
 export async function logOutreachActivity(input: LogOutreachInput) {
   // ...
@@ -241,9 +241,8 @@ export async function logOutreachActivity(input: LogOutreachInput) {
 ## Areas for Contribution
 
 ### High Priority
-- [ ] Stripe integration (Phase 1)
-- [ ] Analytics dashboard (Phase 2)
-- [ ] Email notifications (Phase 4)
+- [ ] Analytics dashboard (Phase 1)
+- [ ] Email notifications (Phase 3)
 - [ ] Test coverage (ongoing)
 
 ### Medium Priority

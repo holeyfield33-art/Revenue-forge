@@ -9,18 +9,19 @@ RevenueForge is built on a modern serverless architecture with clear separation 
 ```
 ┌─────────────────────────────────────────────────────┐
 │                  User Interface Layer               │
-│    Next.js 13+ App Router (React Components)        │
+│    Next.js 15 App Router (React Components)         │
 │  ├─ Auth Pages (Login, Signup)                      │
-│  ├─ Gauntlet Page (Quota Entry)                     │
+│  ├─ Onboarding Page (Offer Gate)                    │
+│  ├─ Gauntlet Page (Outreach Logging)                │
 │  └─ Dashboard (Project Management)                  │
 └────────────────┬────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────┐
 │              Application Layer                      │
 │    Next.js Server Actions & Middleware             │
-│  ├─ Middleware (Quota Gate)                        │
+│  ├─ Middleware (Milestone Gate)                    │
 │  ├─ Server Actions (CRUD Operations)               │
-│  └─ API Routes (Webhooks)                          │
+│  └─ API Routes (Health Check)                      │
 └────────────────┬────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────┐
@@ -57,11 +58,12 @@ RevenueForge is built on a modern serverless architecture with clear separation 
 - Middleware for authentication
 
 **Key Pages**:
-- `/`: Redirect logic based on quota
+- `/`: Redirect logic based on milestone state
 - `/auth/login`: Email/password login
 - `/auth/signup`: Account creation
-- `/gauntlet`: Daily quota form
-- `/dashboard`: Project management
+- `/onboarding`: Offer Gate grading
+- `/gauntlet`: Outreach logging and milestone ladder
+- `/dashboard`: Project management and milestone stats
 
 ---
 
@@ -87,7 +89,7 @@ User → Signup/Login → Supabase Auth → JWT Token → Cookies
 
 ---
 
-### 3. Quota Gate Mechanism
+### 3. Milestone Gate Mechanism
 
 **File**: `middleware.ts`
 
@@ -96,14 +98,28 @@ Request → Middleware
     ↓
 Auth Check (JWT valid?)
     ↓
-Protected Route? (/gauntlet, /dashboard)
+Protected Route? (/onboarding, /gauntlet, /dashboard)
     ↓
-Call check_outreach_gate RPC
+Approved project (offer_score >= 85)?
+    no → Redirect /onboarding
     ↓
-quota_met=false → Redirect /gauntlet
-quota_met=true → Redirect /dashboard
+Call check_milestone_gate RPC
+    ↓
+dashboard_unlocked=false → Redirect /gauntlet
+dashboard_unlocked=true → Redirect /dashboard
 Public Route → Pass through
 ```
+
+**Milestones** (cumulative, computed from `outreach_activities` — no reset):
+
+| Milestone | Requirement | Effect |
+| --- | --- | --- |
+| M1 Forge the Offer | a project with `offer_score >= 85` | unlocks `/gauntlet` |
+| M2 First Sparks | 5 rows in `outreach_activities` | unlocks `/dashboard` |
+| M3 Conversations | 3 rows with `outcome IN ('reply','commitment')` | displayed progress only |
+| M4 Proof of Demand | 1 row with `outcome = 'commitment'` | displayed progress only |
+
+`dashboard_unlocked = m1 AND m2`.
 
 **Performance**: RPC call is <50ms with database indexes
 
@@ -117,19 +133,24 @@ Public Route → Pass through
 - Database RPC function
 
 ```
-User Form Submission
+User Form Submission (with outcome: sent | reply | commitment)
     ↓
 Server Action: logOutreachActivity()
     ↓
 Call DB RPC: log_outreach_activity()
     ↓
-Database Operations (Atomic):
-  1. Insert outreach_activities row
-  2. Update/create daily_quota_logs row
-  3. Return updated count
+Database Operations:
+  1. Insert outreach_activities row (with outcome)
+  2. Recompute milestone state
     ↓
-quota_met? → Redirect to dashboard
+dashboard_unlocked? → Redirect to dashboard
 ```
+
+**Outcome upgrades**: `upgradeOutreachOutcome()` calls the
+`upgrade_outreach_outcome` RPC. Transitions only harden
+(`sent -> reply`, `sent -> commitment`, `reply -> commitment`);
+downgrades are rejected. The RPC runs with invoker rights so RLS
+restricts it to the caller's own activities.
 
 ---
 
@@ -175,23 +196,8 @@ Client Component → Server Action → Supabase → Client Update
 ├─────────────────────────────────────────┤
 │ id (UUID, PK)                           │
 │ user_id (UUID, FK → auth.users)         │
-│ tier (free | pro | max)                 │
-│ daily_quota (INT)                       │
 │ created_at, updated_at                  │
 └─────────────────────────────────────────┘
-        ↑
-        │ One-to-Many
-        │
-┌──────────────────────────────────────────┐
-│ daily_quota_logs                         │
-├──────────────────────────────────────────┤
-│ id (UUID, PK)                            │
-│ user_id (UUID, FK)                       │
-│ date (DATE)                              │
-│ outreach_count (INT)                     │
-│ UNIQUE(user_id, date)                    │
-│ Index: (user_id, date)                   │
-└──────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────┐
 │ projects                                 │
@@ -201,6 +207,8 @@ Client Component → Server Action → Supabase → Client Update
 │ name (TEXT)                              │
 │ description (TEXT)                       │
 │ github_url (TEXT)                        │
+│ offer_sentence (TEXT)                    │
+│ offer_score (INT)                        │
 │ status (in_gauntlet | validated | dead)  │
 │ gauntlet_start_date (TIMESTAMP)          │
 │ created_at, updated_at                   │
@@ -218,6 +226,7 @@ Client Component → Server Action → Supabase → Client Update
 │ platform (email | twitter | linkedin)    │
 │ contact_info (TEXT)                      │
 │ date (DATE)                              │
+│ outcome (sent | reply | commitment)      │
 │ notes (TEXT)                             │
 │ created_at                               │
 │ Index: (user_id, date)                   │
@@ -228,15 +237,11 @@ Client Component → Server Action → Supabase → Client Update
 
 **Performance Critical**:
 ```sql
--- Daily quota lookup (middleware)
-CREATE INDEX idx_daily_quota_logs_user_date 
-  ON daily_quota_logs(user_id, date);
-
 -- Projects list
 CREATE INDEX idx_projects_user_id 
   ON projects(user_id);
 
--- Outreach history
+-- Outreach history and milestone counts
 CREATE INDEX idx_outreach_activities_user_date 
   ON outreach_activities(user_id, date);
 ```
@@ -299,24 +304,28 @@ Next.js built-in CSRF protection for Server Actions
 
 ## Data Flow Examples
 
-### Example 1: Daily Outreach Quota Reset
+### Example 1: Milestone Gate Check
 
-**Scenario**: User logs in on day 2
+**Scenario**: User with 3 logged contacts opens /dashboard
 
 ```
 1. User → Middleware
-2. Middleware → RPC check_outreach_gate
-3. RPC checks daily_quota_logs WHERE date = TODAY
-4. If no row exists → Count = 0 → quota_met = false
+2. Middleware → RPC check_milestone_gate
+3. RPC counts outreach_activities for the user
+4. sent = 3 → m2 = false → dashboard_unlocked = false
 5. Middleware → Redirect to /gauntlet
-6. User sees "0/5" counter
+6. User sees the ladder: M2 at "3 / 5"
 ```
 
 **SQL in RPC**:
 ```sql
-SELECT COALESCE(outreach_count, 0) INTO today_count
-FROM daily_quota_logs
-WHERE user_id = user_id_param AND date = CURRENT_DATE;
+SELECT
+  COUNT(*),
+  COUNT(*) FILTER (WHERE outcome IN ('reply', 'commitment')),
+  COUNT(*) FILTER (WHERE outcome = 'commitment')
+INTO sent_count, reply_count, commitment_count
+FROM outreach_activities
+WHERE user_id = user_id_param;
 ```
 
 ### Example 2: Logging a Contact
@@ -324,20 +333,19 @@ WHERE user_id = user_id_param AND date = CURRENT_DATE;
 **Scenario**: User fills gauntlet form and submits
 
 ```
-1. Form submit (email, twitter handle, notes)
+1. Form submit (platform, contact, outcome, notes)
 2. Client → Server Action logOutreachActivity
 3. Server Action:
    a. Get user from JWT
    b. Call RPC log_outreach_activity
-4. RPC (Atomic Transaction):
+4. RPC:
    a. INSERT into outreach_activities
-   b. UPDATE/INSERT daily_quota_logs (outreach_count++)
-   c. SELECT new count
-5. Return {activity_id, today_count, quota_met, remaining}
+   b. Recompute milestone state
+5. Return {activity_id, m1..m4, sent, replies, commitments, dashboard_unlocked}
 6. Client:
-   - Update UI progress bar
-   - Check if quota_met
-   - Auto-redirect if complete
+   - Update the milestone ladder
+   - Check dashboard_unlocked
+   - Auto-redirect if the gate opened
 ```
 
 ### Example 3: Project Creation
@@ -365,9 +373,8 @@ WHERE user_id = user_id_param AND date = CURRENT_DATE;
 ### Query Performance
 
 **Index Strategy**:
-- `daily_quota_logs(user_id, date)` for gate checks
 - `projects(user_id)` for dashboard list
-- `outreach_activities(user_id, date)` for analytics
+- `outreach_activities(user_id, date)` for milestone counts and history
 
 **Optimization**:
 - RPC functions run on DB (no N+1)
@@ -376,8 +383,8 @@ WHERE user_id = user_id_param AND date = CURRENT_DATE;
 
 ### Caching Strategy
 
-**Future Enhancement** (Phase 2+):
-- Redis cache for quota status
+**Future Enhancement** (Phase 1+):
+- Redis cache for milestone status
 - Stale-while-revalidate for projects list
 - ISR (Incremental Static Regeneration) for public pages
 
@@ -385,7 +392,7 @@ WHERE user_id = user_id_param AND date = CURRENT_DATE;
 
 **Current**: RPC call on every request to protected routes
 - **Impact**: ~50ms per request
-- **Solution**: Cache quota status in cookie (Phase 1)
+- **Solution**: Cache milestone status in cookie (future)
 
 ---
 
@@ -442,7 +449,7 @@ Serves globally via CDN
 
 **Key Metrics**:
 - Daily Active Users (DAU)
-- Quota completion rate
+- Milestone completion rate
 - Project creation rate
 - System uptime
 
@@ -454,8 +461,7 @@ Serves globally via CDN
 
 - **Users**: Unlimited (Supabase scales)
 - **Projects**: Unlimited (indexed queries)
-- **Outreach Activities**: Unlimited (archived monthly)
-- **Requests**: Rate limited by tier (future)
+- **Outreach Activities**: Unlimited (indexed queries)
 
 ### Scale-to-Production Checklist
 
@@ -470,26 +476,21 @@ Serves globally via CDN
 
 ## Future Architectural Changes
 
-### Phase 2 (Stripe Integration)
-- Add payment webhook handler
-- Update RLS for multiple tiers
-- Add job queue for async tasks
-
-### Phase 3 (Teams)
-- Add workspace table
-- Implement team RLS policies
-- Add activity log table
-
-### Phase 4 (CRM Integration)
-- Add external API layer
-- Job queue for syncing
-- Webhook receivers
-
-### Phase 5 (Analytics)
+### Phase 1 (Analytics)
 - Time-series data warehouse
 - Analytics database replica
 - Reporting engine
 
+### Phase 2 (Teams)
+- Add workspace table
+- Implement team RLS policies
+- Add activity log table
+
+### Phase 3 (CRM Integration)
+- Add external API layer
+- Job queue for syncing
+- Webhook receivers
+
 ---
 
-Last Updated: May 2026
+Last Updated: July 2026

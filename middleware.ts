@@ -81,7 +81,7 @@ export async function middleware(request: NextRequest) {
         return response;
       }
 
-      const { data: gateStatus, error } = await supabase.rpc('check_outreach_gate', {
+      const { data: gateStatus, error } = await supabase.rpc('check_milestone_gate', {
         user_id_param: user.id,
       });
 
@@ -90,7 +90,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/gauntlet', request.url));
       }
 
-      if (gateStatus && !gateStatus.quota_met) {
+      if (gateStatus && !gateStatus.dashboard_unlocked) {
         if (path !== '/gauntlet') {
           return NextResponse.redirect(new URL('/gauntlet', request.url));
         }

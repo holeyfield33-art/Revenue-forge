@@ -8,7 +8,7 @@ All server actions are defined in `app/actions.ts` and use the `'use server'` di
 
 #### logOutreachActivity
 
-Logs an outreach contact and increments the daily quota.
+Logs an outreach contact and returns the updated milestone state.
 
 **Type**: `Server Action`
 
@@ -18,6 +18,7 @@ interface LogOutreachInput {
   projectId: string;              // UUID of the project
   platform: 'email' | 'twitter' | 'linkedin' | 'other';
   contactInfo: string;            // Email, handle, URL, etc.
+  outcome?: 'sent' | 'reply' | 'commitment';  // Defaults to 'sent'
   notes?: string;                 // Optional notes about contact
 }
 ```
@@ -28,9 +29,14 @@ interface LogOutreachInput {
   success: boolean;
   data?: {
     activity_id: string;          // UUID of created activity
-    today_count: number;          // Updated count for today
-    quota_met: boolean;           // Is daily quota met?
-    remaining: number;            // Contacts remaining today
+    m1: boolean;                  // Offer scored 85+
+    m2: boolean;                  // 5 contacts logged
+    m3: boolean;                  // 3 replies
+    m4: boolean;                  // 1 commitment
+    sent: number;                 // Total contacts logged
+    replies: number;              // Replies (commitments included)
+    commitments: number;          // Commitments
+    dashboard_unlocked: boolean;  // m1 AND m2
   };
   error?: string;                 // Error message if failed
 }
@@ -46,15 +52,15 @@ const result = await logOutreachActivity({
 });
 
 if (result.success) {
-  console.log(`Logged contact. ${result.data.remaining} remaining.`);
+  console.log(`Logged contact ${result.data.sent} of 5.`);
 }
 ```
 
 ---
 
-#### checkQuotaStatus
+#### checkMilestoneStatus
 
-Checks the user's current quota status.
+Checks the user's current milestone state.
 
 **Type**: `Server Action`
 
@@ -65,10 +71,14 @@ Checks the user's current quota status.
 {
   success: boolean;
   data?: {
-    quota_met: boolean;           // Has daily quota been met?
-    daily_quota: number;          // Total quota for the day
-    today_count: number;          // Contacts logged today
-    remaining: number;            // Contacts remaining
+    m1: boolean;                  // Offer scored 85+
+    m2: boolean;                  // 5 contacts logged
+    m3: boolean;                  // 3 replies
+    m4: boolean;                  // 1 commitment
+    sent: number;                 // Total contacts logged
+    replies: number;              // Replies (commitments included)
+    commitments: number;          // Commitments
+    dashboard_unlocked: boolean;  // m1 AND m2
   };
   error?: string;
 }
@@ -76,9 +86,66 @@ Checks the user's current quota status.
 
 **Example**:
 ```typescript
-const result = await checkQuotaStatus();
-if (result.data?.quota_met) {
+const result = await checkMilestoneStatus();
+if (result.data?.dashboard_unlocked) {
   router.push('/dashboard');
+}
+```
+
+---
+
+#### upgradeOutreachOutcome
+
+Upgrades a logged contact's outcome. Records only harden — allowed transitions are
+`sent -> reply`, `sent -> commitment`, and `reply -> commitment`. Downgrades are rejected.
+
+**Type**: `Server Action`
+
+**Parameters**:
+```typescript
+upgradeOutreachOutcome(
+  activityId: string,             // UUID of the outreach activity
+  outcome: 'reply' | 'commitment'
+)
+```
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  data?: {
+    success: boolean;
+    outcome?: string;             // The new outcome
+    error?: string;               // Rejection reason
+  };
+  error?: string;
+}
+```
+
+**Example**:
+```typescript
+const result = await upgradeOutreachOutcome(activityId, 'reply');
+if (result.error) {
+  setError(result.error); // e.g. downgrade rejected
+}
+```
+
+---
+
+#### getOutreachActivities
+
+Fetches all outreach activities for the current user, newest first.
+
+**Type**: `Server Action`
+
+**Parameters**: None
+
+**Returns**:
+```typescript
+{
+  success: boolean;
+  data?: OutreachActivity[];
+  error?: string;
 }
 ```
 
@@ -109,6 +176,8 @@ interface Project {
   name: string;
   description?: string;
   github_url?: string;
+  offer_sentence?: string;
+  offer_score: number;
   status: 'in_gauntlet' | 'validated' | 'dead';
   gauntlet_start_date: string;  // ISO timestamp
   created_at: string;
@@ -233,50 +302,83 @@ if (result.success) {
 
 ---
 
+#### gradeOffer
+
+Grades a one-sentence Buyer/Product/Offer statement. Uses the OpenAI API when
+`OPENAI_API_KEY` is set, otherwise a mock grader. A score of 85 or above creates
+the project.
+
+**Type**: `Server Action`
+
+**Parameters**:
+```typescript
+gradeOffer(sentence: string)
+```
+
+**Returns**:
+```typescript
+{
+  score: number;                 // 0-100
+  feedback: string;              // Critique or "Clear to proceed"
+  qualified: boolean;            // score >= 85
+  projectId?: string;            // Created project when qualified
+  error?: string;
+}
+```
+
+---
+
 ### Database RPC Functions
 
 RPC functions execute on the database side for performance and security.
 
-#### check_outreach_gate
+#### check_milestone_gate
 
-Checks if a user has completed their daily outreach quota.
+Computes the user's cumulative milestone state.
 
 **Type**: Supabase RPC
 
 **Function Signature**:
 ```sql
-check_outreach_gate(user_id_param UUID)
+check_milestone_gate(user_id_param UUID)
 RETURNS JSON
 ```
 
 **Returns**:
 ```json
 {
-  "quota_met": boolean,
-  "daily_quota": number,
-  "today_count": number,
-  "remaining": number
+  "m1": boolean,
+  "m2": boolean,
+  "m3": boolean,
+  "m4": boolean,
+  "sent": number,
+  "replies": number,
+  "commitments": number,
+  "dashboard_unlocked": boolean
 }
 ```
+
+`replies` counts activities with `outcome IN ('reply', 'commitment')`.
+`dashboard_unlocked` is `m1 AND m2`.
 
 **Example (Client)**:
 ```typescript
 const { data, error } = await supabase
-  .rpc('check_outreach_gate', {
+  .rpc('check_milestone_gate', {
     user_id_param: 'user-uuid'
   });
 ```
 
 **Use Cases**:
-- Middleware quota checking
-- Dashboard quota status display
+- Middleware gate checking
+- Dashboard milestone display
 - Gauntlet redirect logic
 
 ---
 
 #### log_outreach_activity
 
-Logs an outreach contact and updates daily quota.
+Logs an outreach contact and returns the updated milestone state.
 
 **Type**: Supabase RPC
 
@@ -287,7 +389,8 @@ log_outreach_activity(
   project_id_param UUID,
   platform_param TEXT,
   contact_info_param TEXT,
-  notes_param TEXT DEFAULT NULL
+  notes_param TEXT DEFAULT NULL,
+  outcome_param TEXT DEFAULT 'sent'
 )
 RETURNS JSON
 ```
@@ -298,33 +401,40 @@ RETURNS JSON
 - `platform_param`: 'email' | 'twitter' | 'linkedin' | 'other'
 - `contact_info_param`: Contact details (email, handle, etc.)
 - `notes_param`: Optional notes
+- `outcome_param`: 'sent' | 'reply' | 'commitment' (defaults to 'sent')
+
+**Returns**: The `check_milestone_gate` payload plus `activity_id`.
+
+**Side Effects**:
+- Creates row in `outreach_activities`
+
+---
+
+#### upgrade_outreach_outcome
+
+Hardens an activity's outcome. Allowed transitions: `sent -> reply`,
+`sent -> commitment`, `reply -> commitment`. Anything else is rejected.
+Runs with invoker rights, so RLS restricts it to the caller's own activities.
+
+**Type**: Supabase RPC
+
+**Function Signature**:
+```sql
+upgrade_outreach_outcome(
+  activity_id_param UUID,
+  outcome_param TEXT
+)
+RETURNS JSON
+```
 
 **Returns**:
 ```json
 {
-  "activity_id": "string",
-  "today_count": number,
-  "quota_met": boolean,
-  "remaining": number
+  "success": boolean,
+  "outcome": "string (on success)",
+  "error": "string (on rejection)"
 }
 ```
-
-**Example (Client)**:
-```typescript
-const { data, error } = await supabase
-  .rpc('log_outreach_activity', {
-    user_id_param: userId,
-    project_id_param: projectId,
-    platform_param: 'email',
-    contact_info_param: 'user@example.com',
-    notes_param: 'Founder interested'
-  });
-```
-
-**Side Effects**:
-- Creates row in `outreach_activities`
-- Updates/creates row in `daily_quota_logs`
-- Increments `outreach_count` for today
 
 ---
 
@@ -344,52 +454,34 @@ Health check endpoint.
 
 ---
 
-#### POST /api/webhooks/stripe
-
-Stripe webhook handler for payment events.
-
-**Headers Required**:
-```
-Content-Type: application/json
-Stripe-Signature: <signature>
-```
-
-**Event Types Handled**:
-- `checkout.session.completed` - Upgrade to paid tier
-- `customer.subscription.deleted` - Downgrade to free
-
-**Response**:
-```json
-{
-  "received": true
-}
-```
-
----
-
 ### Middleware API
 
-#### Quota Gate Middleware
+#### Milestone Gate Middleware
 
-Enforces the daily quota check on all requests.
+Enforces the milestone gate on all requests to protected routes.
 
 **Protected Routes**:
-- `/gauntlet` (if quota already met, redirects to dashboard)
-- `/dashboard` (if quota not met, redirects to gauntlet)
+- `/onboarding` (if an approved project exists, continues down the flow)
+- `/gauntlet` (if the dashboard is already unlocked, redirects to dashboard)
+- `/dashboard` (if the gate is closed, redirects to gauntlet)
 
 **Flow**:
 1. Check if user is authenticated
-2. Call `check_outreach_gate` RPC
-3. Route based on `quota_met` status
-4. Redirect if necessary
+2. Check for a project with `offer_score >= 85` (M1)
+3. Call `check_milestone_gate` RPC
+4. Route based on `dashboard_unlocked`
+5. Redirect if necessary
 
 **Logic**:
 ```typescript
-if (!quotaStatus.quota_met && path !== '/gauntlet') {
-  return NextResponse.redirect(new URL('/gauntlet', request.url));
+if (gateStatus && !gateStatus.dashboard_unlocked) {
+  if (path !== '/gauntlet') {
+    return NextResponse.redirect(new URL('/gauntlet', request.url));
+  }
+  return response;
 }
 
-if (quotaStatus.quota_met && path === '/gauntlet') {
+if (path !== '/dashboard') {
   return NextResponse.redirect(new URL('/dashboard', request.url));
 }
 ```
@@ -446,7 +538,6 @@ console.log(result.data);
 ### Planned (Phase 1+)
 - 100 requests per minute per user
 - 10,000 requests per day per user
-- Stripe API rate limiting
 
 ---
 
@@ -471,17 +562,22 @@ if (!user) return {error: 'Unauthorized'};
 
 ## Data Types
 
-See `lib/types/database.ts` for TypeScript definitions:
+See `lib/types/database.ts` and `lib/milestones.ts` for TypeScript definitions:
 
-- `UserTier`: 'free' | 'pro' | 'max'
-- `Profile`: User account with tier
-- `DailyQuotaLog`: Daily activity tracking
-- `Project`: Builder project/idea
-- `OutreachActivity`: Individual contact record
+- `Profile`: User account record
+- `Project`: Builder project/idea with offer fields
+- `OutreachActivity`: Individual contact record with outcome
+- `OutreachOutcome`: 'sent' | 'reply' | 'commitment'
+- `MilestoneState`: Computed ladder state (m1-m4, counts, dashboard_unlocked)
 
 ---
 
 ## Changelog
+
+### v0.2.0 (July 2026)
+- Free release
+- Replaced the daily-outreach quota with the cumulative milestone ladder
+- Added outreach outcomes with upgrade-only transitions
 
 ### v0.1.0 (May 2026)
 - Initial MVP release
@@ -501,4 +597,4 @@ For API issues:
 
 ---
 
-Last Updated: May 2026
+Last Updated: July 2026

@@ -4,7 +4,7 @@
 
 This guide walks you through setting up RevenueForge from scratch for local development and deployment.
 
-### Total Setup Time: ~30 minutes
+### Total Setup Time: ~25 minutes
 
 ## Step 1: Repository Setup (5 min)
 
@@ -52,12 +52,11 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 1. In Supabase dashboard, go to SQL Editor
 2. Click "New Query"
-3. Open `/workspaces/Revenue-forge/lib/supabase/schema.sql`
+3. Open `lib/supabase/schema.sql`
 4. Copy entire content and paste into SQL Editor
 5. Click "Run"
 6. Verify tables created:
    - profiles
-   - daily_quota_logs
    - projects
    - outreach_activities
 
@@ -70,35 +69,14 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
    - Site URL: `http://localhost:3000` (dev) or your domain (production)
    - Redirect URLs: Add `http://localhost:3000/auth/callback` and your production URL
 
-## Step 3: Stripe Setup (5 min) [Optional for Dev]
+## Step 3: Optional AI Grader (2 min)
 
-### 3.1 Create Stripe Account
+The onboarding Offer Gate uses a mock grader by default. For real LLM grading:
 
-1. Go to [stripe.com](https://stripe.com)
-2. Create account and verify email
-3. Go to Dashboard
-4. Switch to "Test Mode" (toggle in top left)
-
-### 3.2 Get API Keys
-
-1. Go to Developers → API Keys
-2. Copy these to `.env.local`:
-   - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` = Publishable key
-   - `STRIPE_SECRET_KEY` = Secret key
-
-```
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
-STRIPE_SECRET_KEY=sk_test_xxxxx
-```
-
-### 3.3 Create Products (Optional)
-
-For testing tier upgrades:
-1. Go to Products
-2. Create three products:
-   - **Free**: $0/month (default)
-   - **Pro**: $49/month
-   - **Max**: $99/month
+1. Get an OpenAI API key
+2. Add to `.env.local`:
+   - `OPENAI_API_KEY` = your key
+   - `OPENAI_MODEL` = model name (defaults to `gpt-4o-mini`)
 
 ## Step 4: Local Development (5 min)
 
@@ -111,7 +89,7 @@ npm run dev
 You should see:
 ```
 > next dev
-▲ Next.js 15.0.0
+▲ Next.js 15
 - Local:        http://localhost:3000
 - Environments: .env.local
 
@@ -128,27 +106,28 @@ You should see:
 
 2. **Verify Email Created Profile**
    - In Supabase → Authentication, you should see the user
-   - In Supabase → Profiles table, check a row was created with `tier: 'free'`
+   - In Supabase → Profiles table, check a row was created
 
-3. **Test Gauntlet (Quota Gate)**
-   - Go to `http://localhost:3000` (should redirect to gauntlet)
-   - Create a project: "My First SaaS"
+3. **Pass the Offer Gate**
+   - You should land on `/onboarding`
+   - Submit a one-sentence offer with a specific buyer, product, and outcome
+   - Score 85 or above creates the project and redirects to `/gauntlet`
+
+4. **Test Gauntlet (Milestone Ladder)**
    - Log 5 outreach contacts
-   - Should redirect to dashboard
+   - The ladder shows M2 progress (0/5 to 5/5)
+   - On the 5th contact, you are redirected to the dashboard
 
-4. **Test Dashboard**
+5. **Test Dashboard**
    - Verify projects list shows your created project
    - Create another project via the "New Project" button
-   - Check quota status shows "5 / 5"
+   - Check the milestone ladder shows M1 and M2 achieved
 
-5. **Test Daily Reset**
-   - Manually update database to simulate next day:
-   ```sql
-   UPDATE daily_quota_logs 
-   SET date = CURRENT_DATE + INTERVAL '1 day'
-   WHERE user_id = (SELECT id FROM auth.users LIMIT 1);
-   ```
-   - Refresh page - you should see "0 / 5" again
+6. **Test Outcome Upgrades**
+   - Back on `/gauntlet` entries (before unlocking) or by logging with an outcome,
+     mark a contact "Got reply" or "Committed"
+   - M3 counts replies (commitments included); M4 counts commitments
+   - Downgrades are rejected by the database
 
 ## Step 5: Troubleshooting
 
@@ -184,12 +163,11 @@ echo $NEXT_PUBLIC_SUPABASE_URL
 ```sql
 -- Re-enable RLS policies
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE daily_quota_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE outreach_activities ENABLE ROW LEVEL SECURITY;
 ```
 
-### Issue: "Middleware not enforcing quota"
+### Issue: "Middleware not enforcing the milestone gate"
 
 **Check:**
 1. Verify `middleware.ts` exists in root directory
@@ -247,7 +225,6 @@ docker run -p 3000:3000 \
 - [ ] `.env.local` is in `.gitignore` (don't commit!)
 - [ ] Database schema applied to production Supabase
 - [ ] Supabase Auth URLs configured
-- [ ] Stripe webhook endpoint created (if using payments)
 - [ ] CORS configured in Supabase
 - [ ] Rate limiting configured
 - [ ] Error tracking set up (Sentry)
@@ -258,14 +235,12 @@ docker run -p 3000:3000 \
 
 1. **Read the code**: Start with `app/gauntlet/page.tsx` to understand the flow
 2. **Modify branding**: Update `app/layout.tsx` and colors in `tailwind.config.ts`
-3. **Test payments**: Complete Stripe integration in Phase 2
-4. **Add features**: Reference `FEATURES.md` for roadmap
+3. **Add features**: Reference `FEATURES.md` for roadmap
 
 ## Getting Help
 
 - **Supabase Docs**: [supabase.com/docs](https://supabase.com/docs)
 - **Next.js Docs**: [nextjs.org/docs](https://nextjs.org/docs)
-- **Stripe Docs**: [stripe.com/docs](https://stripe.com/docs)
 - **GitHub Issues**: Open an issue in the repo
 
 ## Performance Tips

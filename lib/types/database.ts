@@ -1,20 +1,10 @@
-export type UserTier = 'free' | 'pro' | 'max';
+import type { OutreachOutcome } from '@/lib/milestones';
 
 export interface Profile {
   id: string;
   user_id: string;
-  tier: UserTier;
-  daily_quota: number;
   created_at: string;
   updated_at: string;
-}
-
-export interface DailyQuotaLog {
-  id: string;
-  user_id: string;
-  date: string;
-  outreach_count: number;
-  created_at: string;
 }
 
 export interface Project {
@@ -38,6 +28,7 @@ export interface OutreachActivity {
   platform: 'email' | 'twitter' | 'linkedin' | 'other';
   contact_info: string;
   date: string;
+  outcome: OutreachOutcome;
   notes?: string;
   created_at: string;
 }

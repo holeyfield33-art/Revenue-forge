@@ -10,8 +10,9 @@ import {
   getProjects,
   createProject,
   deleteProject,
-  checkQuotaStatus,
+  checkMilestoneStatus,
 } from '@/app/actions';
+import { computeMilestones, MILESTONE_TARGETS } from '@/lib/milestones';
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,17 @@ interface Project {
   created_at: string;
 }
 
+interface MilestoneStatus {
+  m1: boolean;
+  m2: boolean;
+  m3: boolean;
+  m4: boolean;
+  sent: number;
+  replies: number;
+  commitments: number;
+  dashboard_unlocked: boolean;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -58,18 +70,18 @@ export default function DashboardPage() {
   const [newProjectGithub, setNewProjectGithub] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [quotaStatus, setQuotaStatus] = useState<any>(null);
+  const [milestoneStatus, setMilestoneStatus] = useState<MilestoneStatus | null>(null);
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        // Check quota
-        const quotaResult = await checkQuotaStatus();
-        if (quotaResult.data) {
-          setQuotaStatus(quotaResult.data);
+        // Check milestones
+        const milestoneResult = await checkMilestoneStatus();
+        if (milestoneResult.data) {
+          setMilestoneStatus(milestoneResult.data);
 
-          // If quota not met, redirect to gauntlet
-          if (!quotaResult.data.quota_met) {
+          // If the dashboard is still locked, redirect to gauntlet
+          if (!milestoneResult.data.dashboard_unlocked) {
             router.push('/gauntlet');
             return;
           }
@@ -197,28 +209,89 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Quota Status */}
-      {quotaStatus && (
-        <Card className="bg-zinc-900 border-zinc-800 mb-6">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-zinc-400">Today's Outreach</p>
-                <p className="text-2xl font-bold text-white">
-                  {quotaStatus.today_count} / {quotaStatus.daily_quota}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-zinc-400">Quota Status</p>
-                <div className="flex items-center gap-2 justify-end mt-1">
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  <p className="font-semibold text-green-400">Complete</p>
+      {/* Milestone Ladder */}
+      {milestoneStatus &&
+        (() => {
+          const ladder = computeMilestones(milestoneStatus.m1, {
+            sent: milestoneStatus.sent,
+            replies: milestoneStatus.replies,
+            commitments: milestoneStatus.commitments,
+          });
+          const replyRate =
+            ladder.sent > 0 ? Math.round((ladder.replies / ladder.sent) * 100) : 0;
+          const milestones = [
+            { name: 'M1 · Forge the Offer', achieved: ladder.m1, progress: 'Done' },
+            {
+              name: 'M2 · First Sparks',
+              achieved: ladder.m2,
+              progress: `${ladder.sent} / ${MILESTONE_TARGETS.sent}`,
+            },
+            {
+              name: 'M3 · Conversations',
+              achieved: ladder.m3,
+              progress: `${ladder.replies} / ${MILESTONE_TARGETS.replies}`,
+            },
+            {
+              name: 'M4 · Proof of Demand',
+              achieved: ladder.m4,
+              progress: `${ladder.commitments} / ${MILESTONE_TARGETS.commitments}`,
+            },
+          ];
+
+          return (
+            <Card className="bg-zinc-900 border-zinc-800 mb-6">
+              <CardContent className="pt-6 space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {milestones.map((milestone) => (
+                    <div
+                      key={milestone.name}
+                      className={`p-3 rounded border ${
+                        milestone.achieved
+                          ? 'bg-green-950 border-green-800'
+                          : 'bg-zinc-800 border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {milestone.achieved ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />
+                        ) : (
+                          <Zap className="w-4 h-4 text-yellow-400 shrink-0" />
+                        )}
+                        <p className="text-xs text-zinc-400">{milestone.name}</p>
+                      </div>
+                      <p
+                        className={`mt-1 font-semibold ${
+                          milestone.achieved ? 'text-green-400' : 'text-white'
+                        }`}
+                      >
+                        {milestone.achieved ? 'Achieved' : `In progress · ${milestone.progress}`}
+                      </p>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <p className="text-sm text-zinc-400">Sent</p>
+                    <p className="text-2xl font-bold text-white">{ladder.sent}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">Replies</p>
+                    <p className="text-2xl font-bold text-white">{ladder.replies}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">Commitments</p>
+                    <p className="text-2xl font-bold text-white">{ladder.commitments}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-zinc-400">Reply Rate</p>
+                    <p className="text-2xl font-bold text-white">{replyRate}%</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
       {/* Projects Section */}
       <div className="mb-8">

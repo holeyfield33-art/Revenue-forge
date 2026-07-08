@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerClient_ } from '@/lib/supabase/server';
+import type { OutreachOutcome } from '@/lib/milestones';
 
 type GradeOfferResult = {
   score: number;
@@ -14,6 +15,7 @@ interface LogOutreachInput {
   projectId: string;
   platform: 'email' | 'twitter' | 'linkedin' | 'other';
   contactInfo: string;
+  outcome?: OutreachOutcome;
   notes?: string;
 }
 
@@ -36,6 +38,7 @@ export async function logOutreachActivity(input: LogOutreachInput) {
       platform_param: input.platform,
       contact_info_param: input.contactInfo,
       notes_param: input.notes || null,
+      outcome_param: input.outcome || 'sent',
     });
 
     if (error) {
@@ -50,10 +53,10 @@ export async function logOutreachActivity(input: LogOutreachInput) {
   }
 }
 
-export async function checkQuotaStatus() {
+export async function checkMilestoneStatus() {
   try {
     const supabase = await createServerClient_();
-    
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -62,14 +65,82 @@ export async function checkQuotaStatus() {
       return { error: 'Unauthorized' };
     }
 
-    // Call the check_outreach_gate RPC function
-    const { data, error } = await supabase.rpc('check_outreach_gate', {
+    // Call the check_milestone_gate RPC function
+    const { data, error } = await supabase.rpc('check_milestone_gate', {
       user_id_param: user.id,
     });
 
     if (error) {
-      console.error('Error checking quota:', error);
-      return { error: 'Failed to check quota' };
+      console.error('Error checking milestones:', error);
+      return { error: 'Failed to check milestones' };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Server action error:', error);
+    return { error: 'An error occurred' };
+  }
+}
+
+export async function upgradeOutreachOutcome(
+  activityId: string,
+  outcome: 'reply' | 'commitment'
+) {
+  try {
+    const supabase = await createServerClient_();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: 'Unauthorized' };
+    }
+
+    // The RPC runs with invoker rights, so RLS limits it to the caller's
+    // own activities, and it rejects downgrades server-side.
+    const { data, error } = await supabase.rpc('upgrade_outreach_outcome', {
+      activity_id_param: activityId,
+      outcome_param: outcome,
+    });
+
+    if (error) {
+      console.error('Error upgrading outcome:', error);
+      return { error: 'Failed to upgrade outcome' };
+    }
+
+    if (data && data.success === false) {
+      return { error: data.error || 'Outcome upgrade rejected' };
+    }
+
+    return { success: true, data };
+  } catch (error) {
+    console.error('Server action error:', error);
+    return { error: 'An error occurred' };
+  }
+}
+
+export async function getOutreachActivities() {
+  try {
+    const supabase = await createServerClient_();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { error: 'Unauthorized' };
+    }
+
+    const { data, error } = await supabase
+      .from('outreach_activities')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching outreach activities:', error);
+      return { error: 'Failed to fetch outreach activities' };
     }
 
     return { success: true, data };

@@ -1,6 +1,6 @@
 # RevenueForge
 
-RevenueForge is a validation-first SaaS for technical builders. It combines an onboarding offer gate, a daily outreach gauntlet, project management, Supabase auth, and Stripe-ready billing scaffolding into one workflow.
+RevenueForge is a free, validation-first SaaS for technical builders. It combines an onboarding offer gate, an outreach gauntlet with a cumulative milestone ladder, project management, and Supabase auth into one workflow.
 
 The product is intentionally opinionated:
 
@@ -9,18 +9,28 @@ The product is intentionally opinionated:
 - The sentence is graded by an LLM or mock grader.
 - If the score is below 85, they rewrite it.
 - If the score is 85 or higher, the project is created and they enter the gauntlet.
-- They must complete the daily outreach quota before reaching the dashboard.
+- They must log 5 outreach contacts before reaching the dashboard. Progress is cumulative — nothing resets.
+
+## The Milestone Ladder
+
+| Milestone | Requirement | Effect |
+| --- | --- | --- |
+| M1 · Forge the Offer | a project with `offer_score >= 85` | unlocks `/gauntlet` |
+| M2 · First Sparks | 5 rows in `outreach_activities` | unlocks `/dashboard` |
+| M3 · Conversations | 3 rows with `outcome IN ('reply','commitment')` | displayed progress only — no route gate |
+| M4 · Proof of Demand | 1 row with `outcome = 'commitment'` | displayed progress only — no route gate |
+
+Outreach outcomes only harden: `sent -> reply`, `sent -> commitment`, `reply -> commitment`. Downgrades are rejected.
 
 ## What’s Included
 
 - Supabase authentication with signup and login
 - Offer Gate onboarding flow at `/onboarding`
 - Middleware-based routing enforcement
-- Daily outreach gauntlet at `/gauntlet`
-- Project dashboard at `/dashboard`
+- Outreach gauntlet with the milestone ladder at `/gauntlet`
+- Project dashboard with milestone and outreach stats at `/dashboard`
 - Supabase RLS schema and RPC helpers
-- Stripe webhook scaffold for later billing work
-- Jest testing framework setup
+- Jest unit tests for the milestone math
 - TypeScript + Next.js 15 app router structure
 
 ## App Flow
@@ -31,8 +41,8 @@ The product is intentionally opinionated:
 4. The server grades the sentence.
 5. Score below 85: red feedback and retry.
 6. Score 85 or above: create the project and redirect to `/gauntlet`.
-7. The middleware checks the user’s daily outreach gate.
-8. When outreach quota is complete, the user reaches `/dashboard`.
+7. The middleware checks the user’s milestone gate.
+8. When 5 outreach contacts are logged (M1 and M2 complete), the user reaches `/dashboard`.
 
 ## Tech Stack
 
@@ -41,7 +51,6 @@ The product is intentionally opinionated:
 - TypeScript
 - Tailwind CSS
 - Supabase for auth and Postgres
-- Stripe integration scaffold
 - Jest and ts-jest for testing
 
 ## Repository Structure
@@ -51,13 +60,12 @@ app/
   actions.ts               Server actions for projects, outreach, and grading
   api/
     health/route.ts        Lightweight health check
-    webhooks/stripe/       Stripe webhook endpoint scaffold
   auth/
     login/page.tsx         Login form
     signup/page.tsx        Signup form
     layout.tsx             Auth-only layout
-  dashboard/page.tsx       Project dashboard
-  gauntlet/page.tsx        Daily outreach gate
+  dashboard/page.tsx       Project dashboard with milestone stats
+  gauntlet/page.tsx        Outreach logging and milestone ladder
   onboarding/page.tsx      Offer Gate onboarding screen
   page.tsx                 Root redirect logic
   globals.css              Global styles
@@ -67,6 +75,8 @@ components/
   ui/                      Shared UI primitives
 
 lib/
+  milestones.ts            Milestone math and outcome upgrade rules
+  milestones.test.ts       Unit tests for the milestone math
   supabase/
     client.ts              Browser client helper
     server.ts              Server client helper
@@ -83,7 +93,6 @@ middleware.ts               Route enforcement and gate logic
 You need accounts for the services below:
 
 - Supabase
-- Stripe
 - OpenAI, only if you want the real LLM grader instead of the built-in mock fallback
 
 ## Environment Variables
@@ -95,12 +104,6 @@ Copy `.env.local.example` to `.env.local` and fill in the values.
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-
-### Stripe
-
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
 
 ### App
 
@@ -134,11 +137,10 @@ Open the Supabase SQL editor and run the full contents of `lib/supabase/schema.s
 That schema creates:
 
 - `profiles`
-- `daily_quota_logs`
 - `projects`
 - `outreach_activities`
 - RLS policies for all tables
-- RPC functions for outreach gating and activity logging
+- RPC functions for milestone gating, activity logging, and outcome upgrades
 
 ### 4. Enable Supabase Auth
 
@@ -159,19 +161,19 @@ The `projects` table stores the onboarding offer gate fields:
 - `offer_sentence` for the one-sentence pitch
 - `offer_score` for the LLM or mock grade
 
-The daily outreach gauntlet still uses:
+The gauntlet uses:
 
-- `profiles` for user tier and quota data
-- `daily_quota_logs` for daily progress
-- `outreach_activities` for each logged contact
+- `outreach_activities` for each logged contact, including its `outcome` (`sent`, `reply`, or `commitment`)
+- the `check_milestone_gate` RPC to compute cumulative milestone state
+- the `upgrade_outreach_outcome` RPC to harden an outcome (downgrades are rejected)
 
 ## Key Routes
 
-- `/` redirects users based on auth, onboarding, and outreach state
+- `/` redirects users based on auth, onboarding, and milestone state
 - `/auth/signup` creates the user profile and sends them to onboarding
 - `/onboarding` grades the offer sentence
-- `/gauntlet` handles daily outreach logging
-- `/dashboard` shows projects and unlocked status
+- `/gauntlet` handles outreach logging and shows the milestone ladder
+- `/dashboard` shows projects, milestone state, and outreach stats
 
 ## Offer Gate Behavior
 
@@ -190,12 +192,12 @@ Rules:
 
 1. Unauthenticated users go to `/auth/login`
 2. Authenticated users without an approved project go to `/onboarding`
-3. Authenticated users with an approved project but incomplete daily outreach go to `/gauntlet`
-4. Users who passed both gates reach `/dashboard`
+3. Authenticated users with an approved project but fewer than 5 logged contacts go to `/gauntlet`
+4. Users who passed both gates (M1 and M2) reach `/dashboard`
 
 ## Testing
 
-Jest is installed and wired to `npm test`.
+Jest is installed and wired to `npm test`. Unit tests cover the milestone math in `lib/milestones.test.ts`.
 
 Run tests with:
 
@@ -219,10 +221,6 @@ npx tsc --noEmit
 4. Apply the Supabase schema to your production project.
 5. Deploy the app.
 
-### Stripe Webhook
-
-If you enable billing later, point your Stripe webhook at `/api/webhooks/stripe` and set `STRIPE_WEBHOOK_SECRET`.
-
 ## Troubleshooting
 
 - If the app says Supabase credentials are missing, check `.env.local`.
@@ -233,6 +231,6 @@ If you enable billing later, point your Stripe webhook at `/api/webhooks/stripe`
 ## Current Status
 
 - Offer Gate onboarding is implemented
-- Daily outreach gauntlet is implemented
-- Dashboard and project management are implemented
-- Stripe webhook is intentionally a scaffold endpoint for now
+- Outreach gauntlet with the milestone ladder is implemented
+- Dashboard with milestone stats and project management is implemented
+- The product is free — there is no payment or plan machinery

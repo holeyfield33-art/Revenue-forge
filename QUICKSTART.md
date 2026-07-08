@@ -8,7 +8,7 @@ Get RevenueForge running locally in 30 minutes. No fluff.
 
 - Node.js 18+
 - npm or yarn
-- A Supabase account (free tier works)
+- A Supabase account (the free plan works)
 
 ### Phase 1: Setup (5 min)
 
@@ -30,8 +30,6 @@ cat > .env.local << EOF
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJxx...
 SUPABASE_SERVICE_ROLE_KEY=eyJxx...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
-STRIPE_SECRET_KEY=sk_test_xxx
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 EOF
 ```
@@ -49,7 +47,6 @@ cat lib/supabase/schema.sql
 
 # 3. Verify tables exist:
 #    - profiles ✓
-#    - daily_quota_logs ✓
 #    - projects ✓
 #    - outreach_activities ✓
 ```
@@ -72,41 +69,46 @@ open http://localhost:3000
 2. Email: test@example.com
 3. Password: Test123!@#
 4. Click "Create Account"
-5. Should redirect to /gauntlet
+5. Should redirect to /onboarding
 ```
 
-**Test 2: Create Project & Log Contacts**
+**Test 2: Pass the Offer Gate**
 ```
-1. Click "Create First Project"
-2. Name: "My SaaS"
-3. Click "Create"
-4. Log 5 contacts:
+1. Write a one-sentence offer with a specific buyer,
+   concrete product, and measurable outcome
+2. Click "Submit Offer"
+3. Score below 85 → rewrite and resubmit
+4. Score 85+ → project created, redirect to /gauntlet
+```
+
+**Test 3: Log Contacts (Milestone M2)**
+```
+1. Log 5 contacts:
    - Platform: Email
    - Contact: founder@company.com
+   - Outcome: Sent (default)
    - Notes: (optional)
    - Click "Log Contact"
-5. Repeat 4 more times
-6. On 5th contact → auto-redirect to /dashboard
+2. The ladder shows M2 progress (1/5 ... 5/5)
+3. On 5th contact → auto-redirect to /dashboard
 ```
 
-**Test 3: View Dashboard**
+**Test 4: View Dashboard**
 ```
-1. Should show "5/5" quota complete
-2. Project "My SaaS" should be listed
-3. Click "New Project" and create another
-4. Both should appear in list
+1. Should show the milestone ladder with M1 and M2 achieved
+2. Sent / Replies / Commitments / Reply Rate stats visible
+3. Project should be listed
+4. Click "New Project" and create another
+5. Both should appear in list
 ```
 
-**Test 4: Test Quota Reset**
+**Test 5: Upgrade Outcomes (M3, M4)**
 ```
-1. In Supabase → SQL Editor:
-   UPDATE daily_quota_logs 
-   SET date = CURRENT_DATE + INTERVAL '1 day'
-   WHERE date = CURRENT_DATE;
-
-2. Refresh browser
-3. Should redirect to /gauntlet
-4. Counter should show "0/5" again
+1. Mark a logged contact "Got reply" → replies count increases
+2. Mark a contact "Committed" → commitments count increases
+   (commitments also count as replies)
+3. M3 completes at 3 replies; M4 at 1 commitment
+4. Downgrades are rejected by the database
 ```
 
 ## 🎯 Common Issues
@@ -155,8 +157,6 @@ WHERE table_schema = 'public';
 
 ```bash
 # 1. Push to GitHub
-git add .
-git commit -m "Initial commit"
 git push
 
 # 2. Go to https://vercel.com
@@ -197,10 +197,11 @@ docker run -p 3000:3000 \
 ## 🎓 Learning the Codebase
 
 **Core Flow** (15 min read):
-1. `middleware.ts` - Quota gate logic
-2. `app/gauntlet/page.tsx` - Form UI
+1. `middleware.ts` - Milestone gate logic
+2. `app/gauntlet/page.tsx` - Ladder and form UI
 3. `app/actions.ts` - Server actions
-4. `lib/supabase/schema.sql` - Database
+4. `lib/milestones.ts` - Milestone math
+5. `lib/supabase/schema.sql` - Database
 
 **Advanced** (30 min read):
 1. `ARCHITECTURE.md` - Full system design
@@ -218,8 +219,8 @@ npm run dev  # Ctrl+Shift+D in VS Code
 npm run build
 npm start
 
-# Lint your code
-npm run lint
+# Run the unit tests
+npm test
 
 # Check for TypeScript errors
 npx tsc --noEmit
@@ -255,14 +256,14 @@ npx tsc --noEmit
 You'll know it's working when:
 
 1. ✅ Signup creates user in auth.users
-2. ✅ Profile auto-created with tier='free'
-3. ✅ Middleware redirects to /gauntlet
-4. ✅ Logging contacts increments counter
-5. ✅ Quota complete auto-redirects to dashboard
-6. ✅ Projects appear in dashboard list
-7. ✅ Projects persist after refresh
-8. ✅ Logout removes session
-9. ✅ Next day shows 0/5 quota again
+2. ✅ Profile auto-created
+3. ✅ Middleware redirects new users to /onboarding
+4. ✅ Offer scored 85+ creates the project
+5. ✅ Logging contacts advances the milestone ladder
+6. ✅ Fifth contact auto-redirects to dashboard
+7. ✅ Projects appear in dashboard list
+8. ✅ Outcome upgrades move M3/M4; downgrades rejected
+9. ✅ Logout removes session
 
 ## 🆘 Need Help?
 
