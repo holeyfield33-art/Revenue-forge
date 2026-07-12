@@ -58,6 +58,7 @@ grep -r "console.log" app/ --exclude-dir=node_modules
 ## File Organization
 
 **Always maintain structure:**
+
 ```
 app/feature-name/
 ├── page.tsx              # Main component
@@ -128,23 +129,29 @@ Example:
 
 ```markdown
 ## Description
+
 Brief explanation of changes
 
 ## Related Issue
+
 Fixes #123
 
 ## Changes Made
+
 - Change 1
 - Change 2
 - Change 3
 
 ## Testing
+
 How to test this change
 
 ## Screenshots
+
 If UI changes, add screenshots
 
 ## Checklist
+
 - [x] Tests pass
 - [x] Code follows style guide
 - [x] Self-reviewed code
@@ -178,6 +185,7 @@ When reviewing code, check for:
 **Never** modify schema directly in production.
 
 **Process**:
+
 1. Create migration file: `migrations/001_add_feature.sql`
 2. Test migration locally
 3. Document breaking changes
@@ -186,6 +194,7 @@ When reviewing code, check for:
 6. Deploy and verify
 
 Example migration:
+
 ```sql
 -- migrations/001_add_display_name.sql
 -- Up
@@ -206,6 +215,7 @@ All features must be documented:
 5. **FEATURES.md**: Feature status updated
 
 Example JSDoc:
+
 ```typescript
 /**
  * Logs an outreach activity and returns the updated milestone state
@@ -241,17 +251,20 @@ export async function logOutreachActivity(input: LogOutreachInput) {
 ## Areas for Contribution
 
 ### High Priority
+
 - [ ] Analytics dashboard (Phase 1)
 - [ ] Email notifications (Phase 3)
 - [ ] Test coverage (ongoing)
 
 ### Medium Priority
+
 - [ ] Performance optimizations
 - [ ] Documentation improvements
 - [ ] UX enhancements
 - [ ] Mobile responsiveness
 
 ### Low Priority (Fun)
+
 - [ ] Themes/color schemes
 - [ ] Animations
 - [ ] Easter eggs
@@ -263,50 +276,64 @@ export async function logOutreachActivity(input: LogOutreachInput) {
 
 ```markdown
 ## Description
+
 Brief description of the bug
 
 ## Steps to Reproduce
+
 1. Step 1
 2. Step 2
 3. Step 3
 
 ## Expected Behavior
+
 What should happen
 
 ## Actual Behavior
+
 What actually happens
 
 ## Environment
+
 - OS: macOS/Windows/Linux
 - Browser: Chrome/Firefox/Safari
 - Node version: 18+
 - Supabase region: us-east-1
 
 ## Screenshots
+
 If applicable
 
 ## Error Logs
 ```
+
 Paste error messages here
+
 ```
+
 ```
 
 ### Feature Request Template
 
 ```markdown
 ## Description
+
 Brief description of feature
 
 ## Problem Solved
+
 What problem does this solve?
 
 ## Proposed Solution
+
 How would you implement this?
 
 ## Alternative Solutions
+
 Any alternatives considered?
 
 ## Additional Context
+
 Links, resources, etc.
 ```
 

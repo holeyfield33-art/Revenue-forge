@@ -9,6 +9,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 #### Implemented Features
 
 **Authentication & User Management**
+
 - [x] Email/Password authentication via Supabase
 - [x] User signup with automatic profile creation
 - [x] User login with session persistence
@@ -16,12 +17,14 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [x] Protected routes via middleware
 
 **The Offer Gate (Onboarding)**
+
 - [x] One-sentence Buyer/Product/Offer submission
 - [x] LLM grading via OpenAI, with a mock fallback when no key is set
 - [x] Score below 85 requires a rewrite
 - [x] Score 85 or above creates the project and enters the gauntlet
 
 **The Gauntlet (Milestone Ladder)**
+
 - [x] Middleware that checks the milestone gate before dashboard access
 - [x] Cumulative milestones — no daily reset:
   - M1 Forge the Offer: a project scored 85+
@@ -37,6 +40,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [x] Automatic redirect to dashboard when the gate opens
 
 **Project Management**
+
 - [x] Create projects during gauntlet
 - [x] List projects on dashboard
 - [x] Delete projects
@@ -44,6 +48,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [x] GitHub URL linking
 
 **Database & Security**
+
 - [x] PostgreSQL schema with 3 core tables
 - [x] Row-Level Security (RLS) for all tables
 - [x] RPC function for milestone checking
@@ -52,6 +57,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [x] Foreign key relationships
 
 **UI/UX**
+
 - [x] Tech-noir dark mode aesthetic
 - [x] Zinc/black backgrounds with red accents
 - [x] Responsive design for mobile/tablet/desktop
@@ -62,6 +68,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [x] Loading states
 
 **Testing**
+
 - [x] Jest unit tests for the milestone math (`lib/milestones.test.ts`)
 
 ---
@@ -69,6 +76,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 ### Phase 1: Analytics & Insights
 
 **Planned Features**
+
 - [ ] Outreach count charts
 - [ ] Contact conversion funnel
 - [ ] Project status breakdown
@@ -85,6 +93,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 ### Phase 2: Team Collaboration
 
 **Planned Features**
+
 - [ ] Team workspaces
 - [ ] Invite team members
 - [ ] Role-based access (Owner, Editor, Viewer)
@@ -101,6 +110,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 ### Phase 3: CRM Integration & Automations
 
 **Planned Features**
+
 - [ ] HubSpot integration
 - [ ] Pipedrive integration
 - [ ] Zapier integration
@@ -117,6 +127,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 ### Phase 4: Mobile App
 
 **Planned Features**
+
 - [ ] iOS native app
 - [ ] Android native app
 - [ ] Offline-first sync
@@ -132,6 +143,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 ### Phase 5: Advanced Features
 
 **Planned Features**
+
 - [ ] AI-powered outreach suggestions
 - [ ] Contact quality scoring
 - [ ] Lead scoring algorithm
@@ -148,6 +160,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 ## Technical Debt & Improvements
 
 ### Code Quality
+
 - [ ] Expand the test suite beyond milestone math (React Testing Library)
 - [ ] Add E2E tests (Cypress)
 - [ ] Add Storybook for component documentation
@@ -155,6 +168,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [ ] Wire up project editing on the dashboard (button is currently a stub)
 
 ### Performance
+
 - [ ] Implement database connection pooling
 - [ ] Add Redis caching layer
 - [ ] Optimize images (next/image)
@@ -162,6 +176,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [ ] Add query debouncing
 
 ### DevOps
+
 - [ ] Set up CI/CD pipeline (GitHub Actions)
 - [ ] Add staging environment
 - [ ] Implement monitoring (DataDog/Sentry)
@@ -170,6 +185,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [ ] Set up WAF rules
 
 ### UX/Design
+
 - [ ] Implement tour guide
 - [ ] Add keyboard shortcuts
 - [ ] Improve accessibility (WCAG 2.1 AA)
@@ -177,6 +193,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [ ] Custom color themes
 
 ### Documentation
+
 - [ ] API documentation (OpenAPI/Swagger)
 - [ ] Architecture decision records (ADRs)
 - [ ] Video tutorials
@@ -187,6 +204,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 ## Feature Requests & Community Ideas
 
 ### From Users
+
 - [ ] Calendar view of outreach
 - [ ] Bulk import from CSV
 - [ ] Slack notifications
@@ -196,6 +214,7 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 - [ ] Custom domain support
 
 ### Product Ideas
+
 - [ ] Gauntlet challenges (seasonal)
 - [ ] Leaderboards
 - [ ] Social proof/public profiles
@@ -219,14 +238,14 @@ This is the foundation - everything needed to enforce the gauntlet's milestone l
 
 ## Feature Status Legend
 
-| Status | Symbol | Meaning |
-|--------|--------|---------|
-| Implemented | ✅ | Done and tested |
-| In Progress | 🚀 | Currently building |
-| Planned | 📋 | Next up |
-| Proposed | 💡 | Under consideration |
-| Blocked | 🚫 | Waiting on dependencies |
-| Deprecated | ⛔ | No longer supported |
+| Status      | Symbol | Meaning                 |
+| ----------- | ------ | ----------------------- |
+| Implemented | ✅     | Done and tested         |
+| In Progress | 🚀     | Currently building      |
+| Planned     | 📋     | Next up                 |
+| Proposed    | 💡     | Under consideration     |
+| Blocked     | 🚫     | Waiting on dependencies |
+| Deprecated  | ⛔     | No longer supported     |
 
 ---
 

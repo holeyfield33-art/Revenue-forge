@@ -1,24 +1,30 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   checkMilestoneStatus,
   logOutreachActivity,
   upgradeOutreachOutcome,
   getOutreachActivities,
   getProjects,
-} from '@/app/actions';
+} from "@/app/actions";
 import {
   canUpgradeOutcome,
   computeMilestones,
   MILESTONE_TARGETS,
   type OutreachOutcome,
-} from '@/lib/milestones';
+} from "@/lib/milestones";
 import {
   Dialog,
   DialogContent,
@@ -26,10 +32,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { AlertCircle, CheckCircle2, Circle, Lock } from 'lucide-react';
+} from "@/components/ui/dialog";
+import { AlertCircle, CheckCircle2, Circle, Lock } from "lucide-react";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 interface Project {
   id: string;
@@ -57,9 +63,9 @@ interface OutreachEntry {
 }
 
 const OUTCOME_LABELS: Record<OutreachOutcome, string> = {
-  sent: 'Sent',
-  reply: 'Reply',
-  commitment: 'Commitment',
+  sent: "Sent",
+  reply: "Reply",
+  commitment: "Commitment",
 };
 
 export default function GauntletPage() {
@@ -69,16 +75,18 @@ export default function GauntletPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [upgradingId, setUpgradingId] = useState<string>('');
-  const [error, setError] = useState('');
+  const [upgradingId, setUpgradingId] = useState<string>("");
+  const [error, setError] = useState("");
   const [showDialog, setShowDialog] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectGithub, setNewProjectGithub] = useState('');
-  const [selectedProject, setSelectedProject] = useState<string>('');
-  const [contactPlatform, setContactPlatform] = useState<'email' | 'twitter' | 'linkedin' | 'other'>('email');
-  const [contactInfo, setContactInfo] = useState('');
-  const [contactOutcome, setContactOutcome] = useState<OutreachOutcome>('sent');
-  const [contactNotes, setContactNotes] = useState('');
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectGithub, setNewProjectGithub] = useState("");
+  const [selectedProject, setSelectedProject] = useState<string>("");
+  const [contactPlatform, setContactPlatform] = useState<
+    "email" | "twitter" | "linkedin" | "other"
+  >("email");
+  const [contactInfo, setContactInfo] = useState("");
+  const [contactOutcome, setContactOutcome] = useState<OutreachOutcome>("sent");
+  const [contactNotes, setContactNotes] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -93,14 +101,14 @@ export default function GauntletPage() {
 
         // Redirect if the dashboard is already unlocked
         if (statusResult.data.dashboard_unlocked) {
-          router.push('/dashboard');
+          router.push("/dashboard");
           return;
         }
 
         // Load projects
         const projectsResult = await getProjects();
         if (projectsResult.error) {
-          console.error('Failed to load projects');
+          console.error("Failed to load projects");
         } else {
           setProjects(projectsResult.data || []);
           if (projectsResult.data && projectsResult.data.length > 0) {
@@ -111,7 +119,7 @@ export default function GauntletPage() {
         // Load logged outreach entries
         const entriesResult = await getOutreachActivities();
         if (entriesResult.error) {
-          console.error('Failed to load outreach entries');
+          console.error("Failed to load outreach entries");
         } else {
           setEntries(entriesResult.data || []);
         }
@@ -125,12 +133,12 @@ export default function GauntletPage() {
 
   const handleLogOutreach = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setSubmitting(true);
 
     try {
       if (!selectedProject || !contactInfo) {
-        setError('Please select a project and enter contact information');
+        setError("Please select a project and enter contact information");
         return;
       }
 
@@ -172,14 +180,14 @@ export default function GauntletPage() {
         ]);
 
         // Reset form
-        setContactInfo('');
-        setContactNotes('');
-        setContactOutcome('sent');
+        setContactInfo("");
+        setContactNotes("");
+        setContactOutcome("sent");
 
         // If the dashboard just unlocked, redirect
         if (result.data.dashboard_unlocked) {
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push("/dashboard");
           }, 500);
         }
       }
@@ -188,8 +196,11 @@ export default function GauntletPage() {
     }
   };
 
-  const handleUpgrade = async (entry: OutreachEntry, outcome: 'reply' | 'commitment') => {
-    setError('');
+  const handleUpgrade = async (
+    entry: OutreachEntry,
+    outcome: "reply" | "commitment",
+  ) => {
+    setError("");
     setUpgradingId(entry.id);
 
     try {
@@ -200,14 +211,16 @@ export default function GauntletPage() {
         return;
       }
 
-      setEntries(entries.map((e) => (e.id === entry.id ? { ...e, outcome } : e)));
+      setEntries(
+        entries.map((e) => (e.id === entry.id ? { ...e, outcome } : e)),
+      );
 
       const statusResult = await checkMilestoneStatus();
       if (statusResult.data) {
         setStatus(statusResult.data);
       }
     } finally {
-      setUpgradingId('');
+      setUpgradingId("");
     }
   };
 
@@ -233,29 +246,29 @@ export default function GauntletPage() {
   const milestones = ladder
     ? [
         {
-          key: 'm1',
-          name: 'M1 · Forge the Offer',
-          requirement: 'Score an offer 85 or higher',
-          progress: ladder.m1 ? 'Done' : 'Locked',
+          key: "m1",
+          name: "M1 · Forge the Offer",
+          requirement: "Score an offer 85 or higher",
+          progress: ladder.m1 ? "Done" : "Locked",
           achieved: ladder.m1,
         },
         {
-          key: 'm2',
-          name: 'M2 · First Sparks',
+          key: "m2",
+          name: "M2 · First Sparks",
           requirement: `Log ${MILESTONE_TARGETS.sent} outreach contacts — unlocks the dashboard`,
           progress: `${ladder.sent} / ${MILESTONE_TARGETS.sent}`,
           achieved: ladder.m2,
         },
         {
-          key: 'm3',
-          name: 'M3 · Conversations',
+          key: "m3",
+          name: "M3 · Conversations",
           requirement: `Get ${MILESTONE_TARGETS.replies} replies (commitments count)`,
           progress: `${ladder.replies} / ${MILESTONE_TARGETS.replies}`,
           achieved: ladder.m3,
         },
         {
-          key: 'm4',
-          name: 'M4 · Proof of Demand',
+          key: "m4",
+          name: "M4 · Proof of Demand",
           requirement: `Land ${MILESTONE_TARGETS.commitments} commitment`,
           progress: `${ladder.commitments} / ${MILESTONE_TARGETS.commitments}`,
           achieved: ladder.m4,
@@ -292,8 +305,8 @@ export default function GauntletPage() {
                   key={milestone.key}
                   className={`flex items-center justify-between p-3 rounded border ${
                     milestone.achieved
-                      ? 'bg-green-950 border-green-800 text-green-200'
-                      : 'bg-zinc-800 border-zinc-700 text-zinc-300'
+                      ? "bg-green-950 border-green-800 text-green-200"
+                      : "bg-zinc-800 border-zinc-700 text-zinc-300"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -304,10 +317,14 @@ export default function GauntletPage() {
                     )}
                     <div>
                       <p className="font-semibold">{milestone.name}</p>
-                      <p className="text-xs text-zinc-400">{milestone.requirement}</p>
+                      <p className="text-xs text-zinc-400">
+                        {milestone.requirement}
+                      </p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold">{milestone.progress}</span>
+                  <span className="text-sm font-semibold">
+                    {milestone.progress}
+                  </span>
                 </div>
               ))}
 
@@ -320,8 +337,8 @@ export default function GauntletPage() {
                 <div className="flex items-center gap-2 p-3 bg-red-950 border border-red-800 rounded text-red-200">
                   <AlertCircle className="w-5 h-5" />
                   <span>
-                    Log {Math.max(0, MILESTONE_TARGETS.sent - ladder.sent)} more contacts to
-                    unlock the dashboard
+                    Log {Math.max(0, MILESTONE_TARGETS.sent - ladder.sent)} more
+                    contacts to unlock the dashboard
                   </span>
                 </div>
               )}
@@ -351,7 +368,9 @@ export default function GauntletPage() {
                   <Label htmlFor="project">Project</Label>
                   {projects.length === 0 ? (
                     <div className="p-3 bg-zinc-800 rounded border border-zinc-700 text-zinc-400 text-sm">
-                      <p className="mb-2">No projects yet. Create one to get started.</p>
+                      <p className="mb-2">
+                        No projects yet. Create one to get started.
+                      </p>
                       <Button
                         type="button"
                         variant="outline"
@@ -391,7 +410,9 @@ export default function GauntletPage() {
                   <select
                     value={contactPlatform}
                     onChange={(e) =>
-                      setContactPlatform(e.target.value as typeof contactPlatform)
+                      setContactPlatform(
+                        e.target.value as typeof contactPlatform,
+                      )
                     }
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                   >
@@ -408,11 +429,11 @@ export default function GauntletPage() {
                   <Input
                     id="contact"
                     placeholder={
-                      contactPlatform === 'email'
-                        ? 'name@example.com'
-                        : contactPlatform === 'twitter'
-                        ? '@username'
-                        : 'LinkedIn profile URL'
+                      contactPlatform === "email"
+                        ? "name@example.com"
+                        : contactPlatform === "twitter"
+                          ? "@username"
+                          : "LinkedIn profile URL"
                     }
                     value={contactInfo}
                     onChange={(e) => setContactInfo(e.target.value)}
@@ -426,7 +447,9 @@ export default function GauntletPage() {
                   <select
                     id="outcome"
                     value={contactOutcome}
-                    onChange={(e) => setContactOutcome(e.target.value as OutreachOutcome)}
+                    onChange={(e) =>
+                      setContactOutcome(e.target.value as OutreachOutcome)
+                    }
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                   >
                     <option value="sent">Sent</option>
@@ -452,7 +475,7 @@ export default function GauntletPage() {
                   className="w-full"
                   disabled={submitting || !selectedProject || !contactInfo}
                 >
-                  {submitting ? 'Logging...' : 'Log Contact'}
+                  {submitting ? "Logging..." : "Log Contact"}
                 </Button>
               </form>
             </CardContent>
@@ -475,28 +498,30 @@ export default function GauntletPage() {
                   className="flex items-center justify-between gap-3 p-3 bg-zinc-800 border border-zinc-700 rounded"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm text-white truncate">{entry.contact_info}</p>
+                    <p className="text-sm text-white truncate">
+                      {entry.contact_info}
+                    </p>
                     <p className="text-xs text-zinc-400">
                       {entry.platform} · {OUTCOME_LABELS[entry.outcome]}
                     </p>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    {canUpgradeOutcome(entry.outcome, 'reply') && (
+                    {canUpgradeOutcome(entry.outcome, "reply") && (
                       <Button
                         size="sm"
                         variant="outline"
                         disabled={upgradingId === entry.id}
-                        onClick={() => handleUpgrade(entry, 'reply')}
+                        onClick={() => handleUpgrade(entry, "reply")}
                       >
                         Got reply
                       </Button>
                     )}
-                    {canUpgradeOutcome(entry.outcome, 'commitment') && (
+                    {canUpgradeOutcome(entry.outcome, "commitment") && (
                       <Button
                         size="sm"
                         variant="outline"
                         disabled={upgradingId === entry.id}
-                        onClick={() => handleUpgrade(entry, 'commitment')}
+                        onClick={() => handleUpgrade(entry, "commitment")}
                       >
                         Committed
                       </Button>
@@ -511,7 +536,8 @@ export default function GauntletPage() {
         {/* Footer Message */}
         <div className="mt-8 text-center text-zinc-500 text-sm">
           <p>
-            The Gauntlet is proof of progress. No dashboard. No metrics. Only results.
+            The Gauntlet is proof of progress. No dashboard. No metrics. Only
+            results.
           </p>
           <p className="mt-2">
             Each contact brings you closer to unlocking the command center.
@@ -553,8 +579,8 @@ export default function GauntletPage() {
               variant="outline"
               onClick={() => {
                 setShowDialog(false);
-                setNewProjectName('');
-                setNewProjectGithub('');
+                setNewProjectName("");
+                setNewProjectGithub("");
               }}
             >
               Cancel
@@ -564,8 +590,8 @@ export default function GauntletPage() {
                 if (newProjectName.trim()) {
                   // This would need a createProject action
                   setShowDialog(false);
-                  setNewProjectName('');
-                  setNewProjectGithub('');
+                  setNewProjectName("");
+                  setNewProjectGithub("");
                 }
               }}
             >

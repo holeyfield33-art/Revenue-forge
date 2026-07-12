@@ -1,18 +1,24 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   getProjects,
   createProject,
   deleteProject,
   checkMilestoneStatus,
-} from '@/app/actions';
-import { computeMilestones, MILESTONE_TARGETS } from '@/lib/milestones';
+} from "@/app/actions";
+import { computeMilestones, MILESTONE_TARGETS } from "@/lib/milestones";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +26,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   AlertCircle,
   CheckCircle2,
@@ -28,23 +34,16 @@ import {
   LogOut,
   Plus,
   Zap,
-} from 'lucide-react';
+} from "lucide-react";
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-);
-
-export const dynamic = 'force-dynamic';
+import { createClient_ } from "@/lib/supabase/client";
 
 interface Project {
   id: string;
   name: string;
   description?: string;
   github_url?: string;
-  status: 'in_gauntlet' | 'validated' | 'dead';
+  status: "in_gauntlet" | "validated" | "dead";
   gauntlet_start_date: string;
   created_at: string;
 }
@@ -65,12 +64,13 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewProject, setShowNewProject] = useState(false);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [newProjectDescription, setNewProjectDescription] = useState('');
-  const [newProjectGithub, setNewProjectGithub] = useState('');
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDescription, setNewProjectDescription] = useState("");
+  const [newProjectGithub, setNewProjectGithub] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [milestoneStatus, setMilestoneStatus] = useState<MilestoneStatus | null>(null);
+  const [error, setError] = useState("");
+  const [milestoneStatus, setMilestoneStatus] =
+    useState<MilestoneStatus | null>(null);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -82,7 +82,7 @@ export default function DashboardPage() {
 
           // If the dashboard is still locked, redirect to gauntlet
           if (!milestoneResult.data.dashboard_unlocked) {
-            router.push('/gauntlet');
+            router.push("/gauntlet");
             return;
           }
         }
@@ -93,7 +93,7 @@ export default function DashboardPage() {
           setProjects(projectsResult.data || []);
         }
       } catch (err) {
-        console.error('Dashboard load error:', err);
+        console.error("Dashboard load error:", err);
       } finally {
         setLoading(false);
       }
@@ -104,11 +104,11 @@ export default function DashboardPage() {
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) {
-      setError('Project name is required');
+      setError("Project name is required");
       return;
     }
 
-    setError('');
+    setError("");
     setSubmitting(true);
 
     try {
@@ -125,16 +125,16 @@ export default function DashboardPage() {
 
       setProjects([result.data, ...projects]);
       setShowNewProject(false);
-      setNewProjectName('');
-      setNewProjectDescription('');
-      setNewProjectGithub('');
+      setNewProjectName("");
+      setNewProjectDescription("");
+      setNewProjectGithub("");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteProject = async (projectId: string) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirm("Are you sure you want to delete this project?")) return;
 
     try {
       const result = await deleteProject(projectId);
@@ -145,34 +145,35 @@ export default function DashboardPage() {
 
       setProjects(projects.filter((p) => p.id !== projectId));
     } catch (err) {
-      console.error('Delete error:', err);
+      console.error("Delete error:", err);
     }
   };
 
   const handleLogout = async () => {
+    const supabase = createClient_();
     await supabase.auth.signOut();
-    router.push('/auth/login');
+    router.push("/auth/login");
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'validated':
-        return 'bg-green-950 border-green-800 text-green-200';
-      case 'dead':
-        return 'bg-red-950 border-red-800 text-red-200';
-      case 'in_gauntlet':
+      case "validated":
+        return "bg-green-950 border-green-800 text-green-200";
+      case "dead":
+        return "bg-red-950 border-red-800 text-red-200";
+      case "in_gauntlet":
       default:
-        return 'bg-yellow-950 border-yellow-800 text-yellow-200';
+        return "bg-yellow-950 border-yellow-800 text-yellow-200";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'validated':
+      case "validated":
         return <CheckCircle2 className="w-4 h-4" />;
-      case 'dead':
+      case "dead":
         return <AlertCircle className="w-4 h-4" />;
-      case 'in_gauntlet':
+      case "in_gauntlet":
       default:
         return <Zap className="w-4 h-4" />;
     }
@@ -218,21 +219,27 @@ export default function DashboardPage() {
             commitments: milestoneStatus.commitments,
           });
           const replyRate =
-            ladder.sent > 0 ? Math.round((ladder.replies / ladder.sent) * 100) : 0;
+            ladder.sent > 0
+              ? Math.round((ladder.replies / ladder.sent) * 100)
+              : 0;
           const milestones = [
-            { name: 'M1 · Forge the Offer', achieved: ladder.m1, progress: 'Done' },
             {
-              name: 'M2 · First Sparks',
+              name: "M1 · Forge the Offer",
+              achieved: ladder.m1,
+              progress: "Done",
+            },
+            {
+              name: "M2 · First Sparks",
               achieved: ladder.m2,
               progress: `${ladder.sent} / ${MILESTONE_TARGETS.sent}`,
             },
             {
-              name: 'M3 · Conversations',
+              name: "M3 · Conversations",
               achieved: ladder.m3,
               progress: `${ladder.replies} / ${MILESTONE_TARGETS.replies}`,
             },
             {
-              name: 'M4 · Proof of Demand',
+              name: "M4 · Proof of Demand",
               achieved: ladder.m4,
               progress: `${ladder.commitments} / ${MILESTONE_TARGETS.commitments}`,
             },
@@ -247,8 +254,8 @@ export default function DashboardPage() {
                       key={milestone.name}
                       className={`p-3 rounded border ${
                         milestone.achieved
-                          ? 'bg-green-950 border-green-800'
-                          : 'bg-zinc-800 border-zinc-700'
+                          ? "bg-green-950 border-green-800"
+                          : "bg-zinc-800 border-zinc-700"
                       }`}
                     >
                       <div className="flex items-center gap-2">
@@ -257,14 +264,18 @@ export default function DashboardPage() {
                         ) : (
                           <Zap className="w-4 h-4 text-yellow-400 shrink-0" />
                         )}
-                        <p className="text-xs text-zinc-400">{milestone.name}</p>
+                        <p className="text-xs text-zinc-400">
+                          {milestone.name}
+                        </p>
                       </div>
                       <p
                         className={`mt-1 font-semibold ${
-                          milestone.achieved ? 'text-green-400' : 'text-white'
+                          milestone.achieved ? "text-green-400" : "text-white"
                         }`}
                       >
-                        {milestone.achieved ? 'Achieved' : `In progress · ${milestone.progress}`}
+                        {milestone.achieved
+                          ? "Achieved"
+                          : `In progress · ${milestone.progress}`}
                       </p>
                     </div>
                   ))}
@@ -273,19 +284,27 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div>
                     <p className="text-sm text-zinc-400">Sent</p>
-                    <p className="text-2xl font-bold text-white">{ladder.sent}</p>
+                    <p className="text-2xl font-bold text-white">
+                      {ladder.sent}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-zinc-400">Replies</p>
-                    <p className="text-2xl font-bold text-white">{ladder.replies}</p>
+                    <p className="text-2xl font-bold text-white">
+                      {ladder.replies}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-zinc-400">Commitments</p>
-                    <p className="text-2xl font-bold text-white">{ladder.commitments}</p>
+                    <p className="text-2xl font-bold text-white">
+                      {ladder.commitments}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-zinc-400">Reply Rate</p>
-                    <p className="text-2xl font-bold text-white">{replyRate}%</p>
+                    <p className="text-2xl font-bold text-white">
+                      {replyRate}%
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -345,11 +364,11 @@ export default function DashboardPage() {
                     </div>
                     <div
                       className={`flex items-center gap-1 px-2 py-1 rounded text-xs border ${getStatusColor(
-                        project.status
+                        project.status,
                       )}`}
                     >
                       {getStatusIcon(project.status)}
-                      {project.status.replace('_', ' ')}
+                      {project.status.replace("_", " ")}
                     </div>
                   </div>
                 </CardHeader>
@@ -440,10 +459,10 @@ export default function DashboardPage() {
               variant="outline"
               onClick={() => {
                 setShowNewProject(false);
-                setNewProjectName('');
-                setNewProjectDescription('');
-                setNewProjectGithub('');
-                setError('');
+                setNewProjectName("");
+                setNewProjectDescription("");
+                setNewProjectGithub("");
+                setError("");
               }}
             >
               Cancel
@@ -452,7 +471,7 @@ export default function DashboardPage() {
               onClick={handleCreateProject}
               disabled={submitting || !newProjectName.trim()}
             >
-              {submitting ? 'Creating...' : 'Create'}
+              {submitting ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>

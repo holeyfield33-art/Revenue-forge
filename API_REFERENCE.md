@@ -13,17 +13,19 @@ Logs an outreach contact and returns the updated milestone state.
 **Type**: `Server Action`
 
 **Parameters**:
+
 ```typescript
 interface LogOutreachInput {
-  projectId: string;              // UUID of the project
-  platform: 'email' | 'twitter' | 'linkedin' | 'other';
-  contactInfo: string;            // Email, handle, URL, etc.
-  outcome?: 'sent' | 'reply' | 'commitment';  // Defaults to 'sent'
-  notes?: string;                 // Optional notes about contact
+  projectId: string; // UUID of the project
+  platform: "email" | "twitter" | "linkedin" | "other";
+  contactInfo: string; // Email, handle, URL, etc.
+  outcome?: "sent" | "reply" | "commitment"; // Defaults to 'sent'
+  notes?: string; // Optional notes about contact
 }
 ```
 
 **Returns**:
+
 ```typescript
 {
   success: boolean;
@@ -43,12 +45,13 @@ interface LogOutreachInput {
 ```
 
 **Example**:
+
 ```typescript
 const result = await logOutreachActivity({
-  projectId: '550e8400-e29b-41d4-a716-446655440000',
-  platform: 'email',
-  contactInfo: 'founder@company.com',
-  notes: 'Interested in demo'
+  projectId: "550e8400-e29b-41d4-a716-446655440000",
+  platform: "email",
+  contactInfo: "founder@company.com",
+  notes: "Interested in demo",
 });
 
 if (result.success) {
@@ -67,6 +70,7 @@ Checks the user's current milestone state.
 **Parameters**: None
 
 **Returns**:
+
 ```typescript
 {
   success: boolean;
@@ -85,10 +89,11 @@ Checks the user's current milestone state.
 ```
 
 **Example**:
+
 ```typescript
 const result = await checkMilestoneStatus();
 if (result.data?.dashboard_unlocked) {
-  router.push('/dashboard');
+  router.push("/dashboard");
 }
 ```
 
@@ -102,6 +107,7 @@ Upgrades a logged contact's outcome. Records only harden — allowed transitions
 **Type**: `Server Action`
 
 **Parameters**:
+
 ```typescript
 upgradeOutreachOutcome(
   activityId: string,             // UUID of the outreach activity
@@ -110,6 +116,7 @@ upgradeOutreachOutcome(
 ```
 
 **Returns**:
+
 ```typescript
 {
   success: boolean;
@@ -123,8 +130,9 @@ upgradeOutreachOutcome(
 ```
 
 **Example**:
+
 ```typescript
-const result = await upgradeOutreachOutcome(activityId, 'reply');
+const result = await upgradeOutreachOutcome(activityId, "reply");
 if (result.error) {
   setError(result.error); // e.g. downgrade rejected
 }
@@ -141,6 +149,7 @@ Fetches all outreach activities for the current user, newest first.
 **Parameters**: None
 
 **Returns**:
+
 ```typescript
 {
   success: boolean;
@@ -160,6 +169,7 @@ Fetches all projects for the current user.
 **Parameters**: None
 
 **Returns**:
+
 ```typescript
 {
   success: boolean;
@@ -169,6 +179,7 @@ Fetches all projects for the current user.
 ```
 
 **Project Structure**:
+
 ```typescript
 interface Project {
   id: string;
@@ -178,18 +189,19 @@ interface Project {
   github_url?: string;
   offer_sentence?: string;
   offer_score: number;
-  status: 'in_gauntlet' | 'validated' | 'dead';
-  gauntlet_start_date: string;  // ISO timestamp
+  status: "in_gauntlet" | "validated" | "dead";
+  gauntlet_start_date: string; // ISO timestamp
   created_at: string;
   updated_at: string;
 }
 ```
 
 **Example**:
+
 ```typescript
 const result = await getProjects();
 if (result.success) {
-  result.data?.forEach(project => {
+  result.data?.forEach((project) => {
     console.log(`${project.name}: ${project.status}`);
   });
 }
@@ -204,15 +216,17 @@ Creates a new project.
 **Type**: `Server Action`
 
 **Parameters**:
+
 ```typescript
 interface CreateProjectInput {
-  name: string;                  // Required
+  name: string; // Required
   description?: string;
   github_url?: string;
 }
 ```
 
 **Returns**:
+
 ```typescript
 {
   success: boolean;
@@ -222,11 +236,12 @@ interface CreateProjectInput {
 ```
 
 **Example**:
+
 ```typescript
 const result = await createProject({
-  name: 'My SaaS',
-  description: 'B2B scheduling tool',
-  github_url: 'https://github.com/user/my-saas'
+  name: "My SaaS",
+  description: "B2B scheduling tool",
+  github_url: "https://github.com/user/my-saas",
 });
 
 if (result.success) {
@@ -243,6 +258,7 @@ Updates an existing project.
 **Type**: `Server Action`
 
 **Parameters**:
+
 ```typescript
 updateProject(
   projectId: string,            // UUID
@@ -256,6 +272,7 @@ updateProject(
 ```
 
 **Returns**:
+
 ```typescript
 {
   success: boolean;
@@ -265,9 +282,10 @@ updateProject(
 ```
 
 **Example**:
+
 ```typescript
 const result = await updateProject(projectId, {
-  status: 'validated'
+  status: "validated",
 });
 ```
 
@@ -280,11 +298,13 @@ Deletes a project and all associated outreach activities.
 **Type**: `Server Action`
 
 **Parameters**:
+
 ```typescript
 deleteProject(projectId: string)
 ```
 
 **Returns**:
+
 ```typescript
 {
   success: boolean;
@@ -293,10 +313,11 @@ deleteProject(projectId: string)
 ```
 
 **Example**:
+
 ```typescript
 const result = await deleteProject(projectId);
 if (result.success) {
-  setProjects(projects.filter(p => p.id !== projectId));
+  setProjects(projects.filter((p) => p.id !== projectId));
 }
 ```
 
@@ -311,11 +332,13 @@ the project.
 **Type**: `Server Action`
 
 **Parameters**:
+
 ```typescript
 gradeOffer(sentence: string)
 ```
 
 **Returns**:
+
 ```typescript
 {
   score: number;                 // 0-100
@@ -339,12 +362,14 @@ Computes the user's cumulative milestone state.
 **Type**: Supabase RPC
 
 **Function Signature**:
+
 ```sql
 check_milestone_gate(user_id_param UUID)
 RETURNS JSON
 ```
 
 **Returns**:
+
 ```json
 {
   "m1": boolean,
@@ -362,14 +387,15 @@ RETURNS JSON
 `dashboard_unlocked` is `m1 AND m2`.
 
 **Example (Client)**:
+
 ```typescript
-const { data, error } = await supabase
-  .rpc('check_milestone_gate', {
-    user_id_param: 'user-uuid'
-  });
+const { data, error } = await supabase.rpc("check_milestone_gate", {
+  user_id_param: "user-uuid",
+});
 ```
 
 **Use Cases**:
+
 - Middleware gate checking
 - Dashboard milestone display
 - Gauntlet redirect logic
@@ -383,6 +409,7 @@ Logs an outreach contact and returns the updated milestone state.
 **Type**: Supabase RPC
 
 **Function Signature**:
+
 ```sql
 log_outreach_activity(
   user_id_param UUID,
@@ -396,6 +423,7 @@ RETURNS JSON
 ```
 
 **Parameters**:
+
 - `user_id_param`: User's UUID (from auth.users)
 - `project_id_param`: Project UUID
 - `platform_param`: 'email' | 'twitter' | 'linkedin' | 'other'
@@ -406,6 +434,7 @@ RETURNS JSON
 **Returns**: The `check_milestone_gate` payload plus `activity_id`.
 
 **Side Effects**:
+
 - Creates row in `outreach_activities`
 
 ---
@@ -419,6 +448,7 @@ Runs with invoker rights, so RLS restricts it to the caller's own activities.
 **Type**: Supabase RPC
 
 **Function Signature**:
+
 ```sql
 upgrade_outreach_outcome(
   activity_id_param UUID,
@@ -428,6 +458,7 @@ RETURNS JSON
 ```
 
 **Returns**:
+
 ```json
 {
   "success": boolean,
@@ -445,6 +476,7 @@ RETURNS JSON
 Health check endpoint.
 
 **Response**:
+
 ```json
 {
   "status": "ok",
@@ -461,11 +493,13 @@ Health check endpoint.
 Enforces the milestone gate on all requests to protected routes.
 
 **Protected Routes**:
+
 - `/onboarding` (if an approved project exists, continues down the flow)
 - `/gauntlet` (if the dashboard is already unlocked, redirects to dashboard)
 - `/dashboard` (if the gate is closed, redirects to gauntlet)
 
 **Flow**:
+
 1. Check if user is authenticated
 2. Check for a project with `offer_score >= 85` (M1)
 3. Call `check_milestone_gate` RPC
@@ -473,16 +507,17 @@ Enforces the milestone gate on all requests to protected routes.
 5. Redirect if necessary
 
 **Logic**:
+
 ```typescript
 if (gateStatus && !gateStatus.dashboard_unlocked) {
-  if (path !== '/gauntlet') {
-    return NextResponse.redirect(new URL('/gauntlet', request.url));
+  if (path !== "/gauntlet") {
+    return NextResponse.redirect(new URL("/gauntlet", request.url));
   }
   return response;
 }
 
-if (path !== '/dashboard') {
-  return NextResponse.redirect(new URL('/dashboard', request.url));
+if (path !== "/dashboard") {
+  return NextResponse.redirect(new URL("/dashboard", request.url));
 }
 ```
 
@@ -493,6 +528,7 @@ if (path !== '/dashboard') {
 ### Common Error Responses
 
 **Unauthorized**:
+
 ```json
 {
   "error": "Unauthorized"
@@ -500,6 +536,7 @@ if (path !== '/dashboard') {
 ```
 
 **Validation Error**:
+
 ```json
 {
   "error": "Please select a project and enter contact information"
@@ -507,6 +544,7 @@ if (path !== '/dashboard') {
 ```
 
 **Database Error**:
+
 ```json
 {
   "error": "Failed to log outreach activity"
@@ -533,9 +571,11 @@ console.log(result.data);
 ## Rate Limiting
 
 ### Current Limits (Phase 0)
+
 - No rate limiting implemented
 
 ### Planned (Phase 1+)
+
 - 100 requests per minute per user
 - 10,000 requests per day per user
 
@@ -546,6 +586,7 @@ console.log(result.data);
 ### Session Management
 
 Sessions are managed by Supabase Auth:
+
 - JWT tokens in httpOnly cookies
 - Automatic token refresh
 - Middleware validates session
@@ -553,9 +594,12 @@ Sessions are managed by Supabase Auth:
 ### Protected Endpoints
 
 All Server Actions check:
+
 ```typescript
-const {data: {user}} = await supabase.auth.getUser();
-if (!user) return {error: 'Unauthorized'};
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+if (!user) return { error: "Unauthorized" };
 ```
 
 ---
@@ -575,11 +619,13 @@ See `lib/types/database.ts` and `lib/milestones.ts` for TypeScript definitions:
 ## Changelog
 
 ### v0.2.0 (July 2026)
+
 - Free release
 - Replaced the daily-outreach quota with the cumulative milestone ladder
 - Added outreach outcomes with upgrade-only transitions
 
 ### v0.1.0 (May 2026)
+
 - Initial MVP release
 - Core gauntlet enforcement
 - Project management
@@ -590,6 +636,7 @@ See `lib/types/database.ts` and `lib/milestones.ts` for TypeScript definitions:
 ## Support
 
 For API issues:
+
 - Check `SETUP_GUIDE.md` for common problems
 - Review browser console for errors
 - Check Supabase logs in dashboard

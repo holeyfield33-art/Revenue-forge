@@ -5,6 +5,7 @@
 ### Pre-Launch (Before First Users)
 
 **Infrastructure**
+
 - [ ] Supabase project created and verified
 - [ ] Database schema applied successfully
 - [ ] All 3 tables created (profiles, projects, outreach_activities)
@@ -15,6 +16,7 @@
 - [ ] Point-in-time recovery verified
 
 **Authentication**
+
 - [ ] Email/password provider enabled
 - [ ] Site URL configured in Supabase
 - [ ] Redirect URLs configured
@@ -24,6 +26,7 @@
 - [ ] Protected routes via middleware working
 
 **Application**
+
 - [ ] All environment variables configured
 - [ ] .env.local exists (not committed)
 - [ ] TypeScript compiles without errors
@@ -34,6 +37,7 @@
 - [ ] No console errors in dev tools
 
 **Testing**
+
 - [ ] Signup flow works (test account created)
 - [ ] Profile auto-created
 - [ ] Login/logout works
@@ -52,6 +56,7 @@
 - [ ] Middleware enforces the milestone gate correctly
 
 **UI/UX**
+
 - [ ] Mobile responsive (test on mobile browser)
 - [ ] Dark mode working correctly
 - [ ] Status badges showing correct colors
@@ -62,6 +67,7 @@
 - [ ] Redirect animations smooth
 
 **Security**
+
 - [ ] No secrets visible in code
 - [ ] RLS policies tested
 - [ ] User isolation verified (can't see other users' data)
@@ -72,6 +78,7 @@
 - [ ] CSRF protection active
 
 **Performance**
+
 - [ ] Gauntlet page loads <2 seconds
 - [ ] Dashboard loads <3 seconds
 - [ ] Form submission responsive
@@ -81,6 +88,7 @@
 - [ ] Bundle size acceptable
 
 **Documentation**
+
 - [ ] README.md complete
 - [ ] SETUP_GUIDE.md step-by-step
 - [ ] QUICKSTART.md tested
@@ -95,6 +103,7 @@
 ### Deployment (Before Production)
 
 **Choose Platform**
+
 - [ ] Vercel setup (recommended)
   - [ ] GitHub repo connected
   - [ ] Build settings configured
@@ -120,6 +129,7 @@ OR
   - [ ] Production config correct
 
 **Production Supabase**
+
 - [ ] New Supabase project for production
 - [ ] Schema applied to production database
 - [ ] Backups enabled
@@ -129,6 +139,7 @@ OR
 - [ ] Database performance optimized
 
 **Production Environment**
+
 - [ ] All env vars updated for production
 - [ ] Database connections pooled
 - [ ] Error tracking setup (Sentry optional)
@@ -138,6 +149,7 @@ OR
 - [ ] Custom domain configured
 
 **Post-Deployment Tests**
+
 - [ ] Visit domain (should load)
 - [ ] Signup works
 - [ ] Login works
@@ -153,6 +165,7 @@ OR
 ### Day-1 Operations
 
 **User Onboarding**
+
 - [ ] First user created
 - [ ] First offer passed the gate
 - [ ] First outreach logged
@@ -160,6 +173,7 @@ OR
 - [ ] First outcome upgraded to reply or commitment
 
 **Monitoring**
+
 - [ ] Check server logs for errors
 - [ ] Monitor database performance
 - [ ] Check uptime (status page)
@@ -167,6 +181,7 @@ OR
 - [ ] Review active users
 
 **Support**
+
 - [ ] Issue template ready
 - [ ] Support email configured
 - [ ] Documentation published
@@ -206,11 +221,13 @@ If any of these are true, **DO NOT LAUNCH**:
 ### Sign-Off
 
 **Technical Lead**:
+
 - Name: _______________
 - Date: _______________
 - Notes: _______________
 
 **Product Lead**:
+
 - Name: _______________
 - Date: _______________
 - Notes: _______________
