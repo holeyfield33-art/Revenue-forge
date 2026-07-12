@@ -35,6 +35,7 @@ cp .env.local.example .env.local
 ### 2.2 Get Your Credentials
 
 Once project is ready:
+
 1. Go to Settings → API
 2. Copy these values to `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL` = Project URL
@@ -42,6 +43,7 @@ Once project is ready:
    - `SUPABASE_SERVICE_ROLE_KEY` = Service role key
 
 Example:
+
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -87,6 +89,7 @@ npm run dev
 ```
 
 You should see:
+
 ```
 > next dev
 ▲ Next.js 15
@@ -134,6 +137,7 @@ You should see:
 ### Issue: "Can't connect to Supabase"
 
 **Check:**
+
 ```bash
 # Verify .env.local exists
 cat .env.local
@@ -143,23 +147,27 @@ echo $NEXT_PUBLIC_SUPABASE_URL
 ```
 
 **Fix:**
+
 - Ensure all three Supabase values are in `.env.local`
 - Restart dev server: `Ctrl+C` then `npm run dev`
 
 ### Issue: "Auth users table not found"
 
 **Fix:**
+
 - This is normal - Supabase creates it automatically
 - Just sign up - it will be created
 
 ### Issue: "RLS policy prevents access"
 
 **Check:**
+
 1. Go to Supabase → Tables
 2. Click each table → RLS
 3. Verify policies are enabled (should be GREEN checkmarks)
 
 **Fix:**
+
 ```sql
 -- Re-enable RLS policies
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -170,11 +178,13 @@ ALTER TABLE outreach_activities ENABLE ROW LEVEL SECURITY;
 ### Issue: "Middleware not enforcing the milestone gate"
 
 **Check:**
+
 1. Verify `middleware.ts` exists in root directory
 2. Check browser dev tools → Network tab
 3. Look for redirect from `/dashboard` to `/gauntlet`
 
 **Debug:**
+
 ```bash
 # Add this to middleware.ts temporarily
 console.log('Middleware running for:', path);

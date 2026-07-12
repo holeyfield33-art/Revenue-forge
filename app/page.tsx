@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
-import { createServerClient_ } from '@/lib/supabase/server';
+import { redirect } from "next/navigation";
+import { createServerClient_ } from "@/lib/supabase/server";
 
 export default async function Page() {
   let supabase;
@@ -7,7 +7,7 @@ export default async function Page() {
   try {
     supabase = await createServerClient_();
   } catch {
-    redirect('/auth/login');
+    redirect("/auth/login");
   }
 
   const {
@@ -15,38 +15,41 @@ export default async function Page() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/auth/login');
+    redirect("/auth/login");
   }
 
   const { data: projects, error: projectsError } = await supabase
-    .from('projects')
-    .select('id, offer_score')
-    .eq('user_id', user.id)
-    .gte('offer_score', 85)
-    .order('offer_score', { ascending: false })
+    .from("projects")
+    .select("id, offer_score")
+    .eq("user_id", user.id)
+    .gte("offer_score", 85)
+    .order("offer_score", { ascending: false })
     .limit(1);
 
   if (projectsError) {
-    console.error('Project gate error:', projectsError);
-    redirect('/auth/login');
+    console.error("Project gate error:", projectsError);
+    redirect("/auth/login");
   }
 
   if (!projects || projects.length === 0) {
-    redirect('/onboarding');
+    redirect("/onboarding");
   }
 
-  const { data: gateStatus, error } = await supabase.rpc('check_milestone_gate', {
-    user_id_param: user.id,
-  });
+  const { data: gateStatus, error } = await supabase.rpc(
+    "check_milestone_gate",
+    {
+      user_id_param: user.id,
+    },
+  );
 
   if (error) {
-    console.error('Gate check error:', error);
-    redirect('/auth/login');
+    console.error("Gate check error:", error);
+    redirect("/auth/login");
   }
 
   if (gateStatus && !gateStatus.dashboard_unlocked) {
-    redirect('/gauntlet');
+    redirect("/gauntlet");
   }
 
-  redirect('/dashboard');
+  redirect("/dashboard");
 }

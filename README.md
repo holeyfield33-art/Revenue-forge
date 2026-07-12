@@ -13,12 +13,12 @@ The product is intentionally opinionated:
 
 ## The Milestone Ladder
 
-| Milestone | Requirement | Effect |
-| --- | --- | --- |
-| M1 · Forge the Offer | a project with `offer_score >= 85` | unlocks `/gauntlet` |
-| M2 · First Sparks | 5 rows in `outreach_activities` | unlocks `/dashboard` |
-| M3 · Conversations | 3 rows with `outcome IN ('reply','commitment')` | displayed progress only — no route gate |
-| M4 · Proof of Demand | 1 row with `outcome = 'commitment'` | displayed progress only — no route gate |
+| Milestone            | Requirement                                     | Effect                                  |
+| -------------------- | ----------------------------------------------- | --------------------------------------- |
+| M1 · Forge the Offer | a project with `offer_score >= 85`              | unlocks `/gauntlet`                     |
+| M2 · First Sparks    | 5 rows in `outreach_activities`                 | unlocks `/dashboard`                    |
+| M3 · Conversations   | 3 rows with `outcome IN ('reply','commitment')` | displayed progress only — no route gate |
+| M4 · Proof of Demand | 1 row with `outcome = 'commitment'`             | displayed progress only — no route gate |
 
 Outreach outcomes only harden: `sent -> reply`, `sent -> commitment`, `reply -> commitment`. Downgrades are rejected.
 

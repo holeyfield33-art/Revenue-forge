@@ -1,37 +1,43 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { createClient_ } from '@/lib/supabase/client';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { createClient_ } from "@/lib/supabase/client";
+import Link from "next/link";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default function SignupPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const router = useRouter();
-  const supabase = createClient_();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       return;
     }
 
     setLoading(true);
 
     try {
+      const supabase = createClient_();
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
@@ -41,14 +47,14 @@ export default function SignupPage() {
 
       // Create a profile record for the user
       if (data.user) {
-        await supabase.from('profiles').insert({
+        await supabase.from("profiles").insert({
           user_id: data.user.id,
         });
       }
 
-      router.push('/onboarding');
+      router.push("/onboarding");
     } catch (err: any) {
-      setError(err.message || 'Failed to sign up');
+      setError(err.message || "Failed to sign up");
     } finally {
       setLoading(false);
     }
@@ -107,14 +113,17 @@ export default function SignupPage() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Create Account'}
+              {loading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-sm text-zinc-400">
-              Already have an account?{' '}
-              <Link href="/auth/login" className="text-white hover:text-zinc-200 font-medium">
+              Already have an account?{" "}
+              <Link
+                href="/auth/login"
+                className="text-white hover:text-zinc-200 font-medium"
+              >
                 Sign in
               </Link>
             </p>

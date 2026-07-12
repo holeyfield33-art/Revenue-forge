@@ -5,6 +5,7 @@
 ### 1. Supabase Configuration
 
 #### Create a New Supabase Project
+
 1. Go to [supabase.com](https://supabase.com)
 2. Create a new project
 3. Note your project URL and anon key
@@ -12,18 +13,21 @@
 5. Execute the SQL schema from `lib/supabase/schema.sql`
 
 #### Configure Authentication
+
 1. In Supabase dashboard, go to Authentication → Providers
 2. Ensure Email/Password provider is enabled
 3. Configure email settings under Email Templates if needed
 4. Add your application URLs to Site URL and Redirect URLs in Auth Settings
 
 #### Enable RLS and RPC
+
 1. RLS is enabled by default for all tables in schema.sql
 2. RPC functions are created by the schema.sql execution
 
 ### 2. Environment Variables
 
 Create `.env.local`:
+
 ```
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
@@ -108,6 +112,7 @@ curl -fsSL https://coolify.io/install.sh | bash
 ### Option 4: Docker + Any Cloud
 
 Create `Dockerfile`:
+
 ```dockerfile
 FROM node:18-alpine
 WORKDIR /app
@@ -137,11 +142,13 @@ CMD ["npm", "start"]
 ## Monitoring
 
 ### Supabase
+
 - Monitor database performance in Supabase dashboard
 - Check authentication logs
 - Review RLS policy execution
 
 ### Application
+
 - Set up error tracking (Sentry, LogRocket)
 - Monitor API response times
 - Track user signup/conversion funnel
@@ -149,32 +156,38 @@ CMD ["npm", "start"]
 ## Scaling Considerations
 
 ### Database
+
 - Enable read replicas for high traffic
 - Implement query optimization
 - Consider connection pooling
 
 ### Application
+
 - Use CDN for static assets (Cloudflare)
 - Implement Redis for caching
 - Consider horizontal scaling
 
 ### File Storage
+
 - Use Supabase Storage for user uploads
 - Implement CDN for media delivery
 
 ## Troubleshooting
 
 ### "Can't connect to Supabase"
+
 - Verify NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY
 - Check network connectivity
 - Ensure Supabase project is active
 
 ### "RLS policy prevents access"
+
 - Verify user_id matches auth.uid()
 - Check RLS policies are correctly set
 - Ensure user is authenticated
 
 ### "Middleware not enforcing the milestone gate"
+
 - Check middleware.ts is in root directory
 - Verify the check_milestone_gate RPC function exists
 - Check authentication context in middleware

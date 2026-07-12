@@ -52,12 +52,14 @@ RevenueForge is built on a modern serverless architecture with clear separation 
 **Files**: `app/**/*.tsx`
 
 **Features**:
+
 - Server Components (default)
 - Client Components (with `'use client'`)
 - Server Actions for mutations
 - Middleware for authentication
 
 **Key Pages**:
+
 - `/`: Redirect logic based on milestone state
 - `/auth/login`: Email/password login
 - `/auth/signup`: Account creation
@@ -80,6 +82,7 @@ User → Signup/Login → Supabase Auth → JWT Token → Cookies
 ```
 
 **Session Lifecycle**:
+
 1. User signs up via `/auth/signup`
 2. Supabase creates auth user and sends verification email
 3. Email link verified
@@ -112,12 +115,12 @@ Public Route → Pass through
 
 **Milestones** (cumulative, computed from `outreach_activities` — no reset):
 
-| Milestone | Requirement | Effect |
-| --- | --- | --- |
-| M1 Forge the Offer | a project with `offer_score >= 85` | unlocks `/gauntlet` |
-| M2 First Sparks | 5 rows in `outreach_activities` | unlocks `/dashboard` |
-| M3 Conversations | 3 rows with `outcome IN ('reply','commitment')` | displayed progress only |
-| M4 Proof of Demand | 1 row with `outcome = 'commitment'` | displayed progress only |
+| Milestone          | Requirement                                     | Effect                  |
+| ------------------ | ----------------------------------------------- | ----------------------- |
+| M1 Forge the Offer | a project with `offer_score >= 85`              | unlocks `/gauntlet`     |
+| M2 First Sparks    | 5 rows in `outreach_activities`                 | unlocks `/dashboard`    |
+| M3 Conversations   | 3 rows with `outcome IN ('reply','commitment')` | displayed progress only |
+| M4 Proof of Demand | 1 row with `outcome = 'commitment'`             | displayed progress only |
 
 `dashboard_unlocked = m1 AND m2`.
 
@@ -127,7 +130,8 @@ Public Route → Pass through
 
 ### 4. Outreach Logging
 
-**Files**: 
+**Files**:
+
 - `app/gauntlet/page.tsx` (UI)
 - `app/actions.ts` (Server Action)
 - Database RPC function
@@ -157,17 +161,20 @@ restricts it to the caller's own activities.
 ### 5. Project Management
 
 **Server Actions**:
+
 - `createProject()`
 - `getProjects()`
 - `updateProject()`
 - `deleteProject()`
 
 **RLS Policy**:
+
 ```sql
 SELECT * FROM projects WHERE user_id = auth.uid()
 ```
 
 **Data Flow**:
+
 ```
 Client Component → Server Action → Supabase → Client Update
 ```
@@ -236,13 +243,14 @@ Client Component → Server Action → Supabase → Client Update
 ### Indexes
 
 **Performance Critical**:
+
 ```sql
 -- Projects list
-CREATE INDEX idx_projects_user_id 
+CREATE INDEX idx_projects_user_id
   ON projects(user_id);
 
 -- Outreach history and milestone counts
-CREATE INDEX idx_outreach_activities_user_date 
+CREATE INDEX idx_outreach_activities_user_date
   ON outreach_activities(user_id, date);
 ```
 
@@ -265,6 +273,7 @@ Email/Password → Supabase Auth → JWT → httpOnly Cookie
 ### 2. Row-Level Security (RLS)
 
 **Profile Policy**:
+
 ```sql
 CREATE POLICY "Users can view own profile"
   ON profiles FOR SELECT
@@ -272,6 +281,7 @@ CREATE POLICY "Users can view own profile"
 ```
 
 **Projects Policy**:
+
 ```sql
 CREATE POLICY "Users can only see own projects"
   ON projects FOR SELECT
@@ -279,6 +289,7 @@ CREATE POLICY "Users can only see own projects"
 ```
 
 **Benefits**:
+
 - Database enforces access control
 - SQL injection safe
 - Works at query level (no data leaks)
@@ -287,8 +298,9 @@ CREATE POLICY "Users can only see own projects"
 ### 3. Server Actions
 
 All mutations happen server-side:
+
 ```typescript
-'use server'  // ← Only runs on server
+"use server"; // ← Only runs on server
 export async function logOutreachActivity(input) {
   // Client can't bypass this
   const user = await supabase.auth.getUser();
@@ -318,6 +330,7 @@ Next.js built-in CSRF protection for Server Actions
 ```
 
 **SQL in RPC**:
+
 ```sql
 SELECT
   COUNT(*),
@@ -373,10 +386,12 @@ WHERE user_id = user_id_param;
 ### Query Performance
 
 **Index Strategy**:
+
 - `projects(user_id)` for dashboard list
 - `outreach_activities(user_id, date)` for milestone counts and history
 
 **Optimization**:
+
 - RPC functions run on DB (no N+1)
 - Indexes ensure sub-50ms queries
 - Connection pooling via Supabase
@@ -384,6 +399,7 @@ WHERE user_id = user_id_param;
 ### Caching Strategy
 
 **Future Enhancement** (Phase 1+):
+
 - Redis cache for milestone status
 - Stale-while-revalidate for projects list
 - ISR (Incremental Static Regeneration) for public pages
@@ -391,6 +407,7 @@ WHERE user_id = user_id_param;
 ### Middleware Performance
 
 **Current**: RPC call on every request to protected routes
+
 - **Impact**: ~50ms per request
 - **Solution**: Cache milestone status in cookie (future)
 
@@ -425,11 +442,13 @@ Serves globally via CDN
 ### Disaster Recovery
 
 **Backup Strategy**:
+
 - Supabase daily automated backups
 - Point-in-time recovery available
 - Manual export option
 
 **Failover**:
+
 - Vercel provides failover regions
 - Supabase has HA setup
 - No single point of failure
@@ -441,6 +460,7 @@ Serves globally via CDN
 ### Logging
 
 **Structured Logging** (Planned):
+
 - Request logs
 - Error tracking (Sentry)
 - Performance monitoring (DataDog)
@@ -448,6 +468,7 @@ Serves globally via CDN
 ### Metrics
 
 **Key Metrics**:
+
 - Daily Active Users (DAU)
 - Milestone completion rate
 - Project creation rate
@@ -477,16 +498,19 @@ Serves globally via CDN
 ## Future Architectural Changes
 
 ### Phase 1 (Analytics)
+
 - Time-series data warehouse
 - Analytics database replica
 - Reporting engine
 
 ### Phase 2 (Teams)
+
 - Add workspace table
 - Implement team RLS policies
 - Add activity log table
 
 ### Phase 3 (CRM Integration)
+
 - Add external API layer
 - Job queue for syncing
 - Webhook receivers

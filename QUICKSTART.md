@@ -64,6 +64,7 @@ open http://localhost:3000
 ### Phase 4: Test the Flow (10 min)
 
 **Test 1: Create Account**
+
 ```
 1. Go to http://localhost:3000/auth/signup
 2. Email: test@example.com
@@ -73,6 +74,7 @@ open http://localhost:3000
 ```
 
 **Test 2: Pass the Offer Gate**
+
 ```
 1. Write a one-sentence offer with a specific buyer,
    concrete product, and measurable outcome
@@ -82,6 +84,7 @@ open http://localhost:3000
 ```
 
 **Test 3: Log Contacts (Milestone M2)**
+
 ```
 1. Log 5 contacts:
    - Platform: Email
@@ -94,6 +97,7 @@ open http://localhost:3000
 ```
 
 **Test 4: View Dashboard**
+
 ```
 1. Should show the milestone ladder with M1 and M2 achieved
 2. Sent / Replies / Commitments / Reply Rate stats visible
@@ -103,6 +107,7 @@ open http://localhost:3000
 ```
 
 **Test 5: Upgrade Outcomes (M3, M4)**
+
 ```
 1. Mark a logged contact "Got reply" → replies count increases
 2. Mark a contact "Committed" → commitments count increases
@@ -128,7 +133,7 @@ npm run dev
 
 ```bash
 # In Supabase SQL Editor:
-SELECT table_name FROM information_schema.tables 
+SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public';
 
 # If empty, run schema.sql again
@@ -197,6 +202,7 @@ docker run -p 3000:3000 \
 ## 🎓 Learning the Codebase
 
 **Core Flow** (15 min read):
+
 1. `middleware.ts` - Milestone gate logic
 2. `app/gauntlet/page.tsx` - Ladder and form UI
 3. `app/actions.ts` - Server actions
@@ -204,6 +210,7 @@ docker run -p 3000:3000 \
 5. `lib/supabase/schema.sql` - Database
 
 **Advanced** (30 min read):
+
 1. `ARCHITECTURE.md` - Full system design
 2. `lib/supabase/server.ts` - DB connection
 3. `app/dashboard/page.tsx` - Project management
