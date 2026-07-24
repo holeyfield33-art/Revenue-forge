@@ -18,6 +18,7 @@ import {
   upgradeOutreachOutcome,
   getOutreachActivities,
   getProjects,
+  createProject,
 } from "@/app/actions";
 import {
   canUpgradeOutcome,
@@ -81,6 +82,7 @@ export default function GauntletPage() {
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectGithub, setNewProjectGithub] = useState("");
   const [selectedProject, setSelectedProject] = useState<string>("");
+  const [creatingProject, setCreatingProject] = useState(false);
   const [contactPlatform, setContactPlatform] = useState<
     "email" | "twitter" | "linkedin" | "other"
   >("email");
@@ -221,6 +223,36 @@ export default function GauntletPage() {
       }
     } finally {
       setUpgradingId("");
+    }
+  };
+
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim()) {
+      setError("Project name is required");
+      return;
+    }
+
+    setError("");
+    setCreatingProject(true);
+
+    try {
+      const result = await createProject({
+        name: newProjectName,
+        github_url: newProjectGithub || undefined,
+      });
+
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      setProjects([result.data, ...projects]);
+      setSelectedProject(result.data.id);
+      setShowDialog(false);
+      setNewProjectName("");
+      setNewProjectGithub("");
+    } finally {
+      setCreatingProject(false);
     }
   };
 
@@ -555,6 +587,11 @@ export default function GauntletPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
+            {error && (
+              <div className="p-3 bg-red-950 border border-red-800 rounded text-red-200 text-sm">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="projectName">Project Name</Label>
               <Input
@@ -581,21 +618,16 @@ export default function GauntletPage() {
                 setShowDialog(false);
                 setNewProjectName("");
                 setNewProjectGithub("");
+                setError("");
               }}
             >
               Cancel
             </Button>
             <Button
-              onClick={async () => {
-                if (newProjectName.trim()) {
-                  // This would need a createProject action
-                  setShowDialog(false);
-                  setNewProjectName("");
-                  setNewProjectGithub("");
-                }
-              }}
+              onClick={handleCreateProject}
+              disabled={creatingProject || !newProjectName.trim()}
             >
-              Create
+              {creatingProject ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </DialogContent>

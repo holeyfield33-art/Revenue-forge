@@ -20,6 +20,9 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [score, setScore] = useState<number | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [graderMode, setGraderMode] = useState<"llm" | "heuristic" | null>(
+    null,
+  );
   const [flash, setFlash] = useState<"idle" | "red" | "green">("idle");
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -27,11 +30,13 @@ export default function OnboardingPage() {
     setLoading(true);
     setFeedback("");
     setScore(null);
+    setGraderMode(null);
 
     try {
       const result = await gradeOffer(sentence);
       setScore(result.score);
       setFeedback(result.feedback);
+      setGraderMode(result.graderMode);
 
       if (result.error) {
         setFlash("red");
@@ -93,6 +98,13 @@ export default function OnboardingPage() {
               <div className="rounded border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-200">
                 <p className="font-semibold text-white">Score: {score}/100</p>
                 <p className="mt-1 text-zinc-300">{feedback}</p>
+                {graderMode === "heuristic" && (
+                  <p className="mt-2 text-xs text-zinc-500">
+                    Graded by the built-in rubric checker, not an LLM — no{" "}
+                    <code className="text-zinc-400">OPENAI_API_KEY</code> is
+                    configured on this deployment.
+                  </p>
+                )}
               </div>
             )}
 
