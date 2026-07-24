@@ -23,6 +23,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkEmail, setCheckEmail] = useState(false);
   const router = useRouter();
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -41,6 +42,9 @@ export default function SignupPage() {
       const { error, data } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
       if (error) throw error;
@@ -50,6 +54,15 @@ export default function SignupPage() {
         await supabase.from("profiles").insert({
           user_id: data.user.id,
         });
+      }
+
+      // If email confirmation is required, Supabase returns a user but no
+      // session. Redirecting to /onboarding would just bounce back to
+      // login since there is no session yet, so tell the user to confirm
+      // their email instead.
+      if (!data.session) {
+        setCheckEmail(true);
+        return;
       }
 
       router.push("/onboarding");
@@ -69,65 +82,79 @@ export default function SignupPage() {
 
       <Card className="bg-zinc-900 border-zinc-800">
         <CardHeader>
-          <CardTitle>Create Your Account</CardTitle>
-          <CardDescription>Start your 14-day gauntlet today</CardDescription>
+          <CardTitle>
+            {checkEmail ? "Confirm Your Email" : "Create Your Account"}
+          </CardTitle>
+          <CardDescription>
+            {checkEmail
+              ? `We sent a confirmation link to ${email}. Click it, then log in.`
+              : "Start your 14-day gauntlet today"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignup} className="space-y-4">
-            {error && (
-              <div className="p-3 bg-red-950 border border-red-800 rounded text-red-200 text-sm">
-                {error}
+          {checkEmail ? (
+            <Link href="/auth/login">
+              <Button className="w-full">Go to Login</Button>
+            </Link>
+          ) : (
+            <form onSubmit={handleSignup} className="space-y-4">
+              {error && (
+                <div className="p-3 bg-red-950 border border-red-800 rounded text-red-200 text-sm">
+                  {error}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Create Account"}
-            </Button>
-          </form>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Creating account..." : "Create Account"}
+              </Button>
+            </form>
+          )}
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-zinc-400">
-              Already have an account?{" "}
-              <Link
-                href="/auth/login"
-                className="text-white hover:text-zinc-200 font-medium"
-              >
-                Sign in
-              </Link>
-            </p>
-          </div>
+          {!checkEmail && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-zinc-400">
+                Already have an account?{" "}
+                <Link
+                  href="/auth/login"
+                  className="text-white hover:text-zinc-200 font-medium"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </>

@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 export function createClient_() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,5 +10,5 @@ export function createClient_() {
     throw new Error("Missing Supabase credentials");
   }
 
-  return createClient(supabaseUrl, supabaseKey);
+  return createBrowserClient(supabaseUrl, supabaseKey);
 }

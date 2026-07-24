@@ -2,6 +2,7 @@
 
 import { createServerClient_ } from "@/lib/supabase/server";
 import type { OutreachOutcome } from "@/lib/milestones";
+import { validateOfferSentence } from "@/lib/validateOfferSentence";
 
 type GradeOfferResult = {
   score: number;
@@ -326,15 +327,17 @@ export async function gradeOffer(sentence: string): Promise<GradeOfferResult> {
       };
     }
 
-    const trimmedSentence = sentence.trim();
+    const validation = validateOfferSentence(sentence);
 
-    if (!trimmedSentence) {
+    if (!validation.valid) {
       return {
         score: 0,
-        feedback: "Write one sentence before submitting.",
+        feedback: validation.reason!,
         qualified: false,
       };
     }
+
+    const trimmedSentence = sentence.trim();
 
     const apiKey = process.env.OPENAI_API_KEY;
 

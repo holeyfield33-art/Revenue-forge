@@ -388,11 +388,10 @@ export default function DashboardPage() {
                       size="sm"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => {
-                        // Edit functionality
-                      }}
+                      disabled
+                      title="Project editing is coming soon"
                     >
-                      Edit
+                      Edit (soon)
                     </Button>
                     <Button
                       size="sm"
