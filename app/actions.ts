@@ -3,6 +3,7 @@
 import { createServerClient_ } from "@/lib/supabase/server";
 import type { OutreachOutcome } from "@/lib/milestones";
 import { validateOfferSentence } from "@/lib/validateOfferSentence";
+import { heuristicGradeOffer } from "@/lib/gradeOfferHeuristic";
 
 type GradeOfferResult = {
   score: number;
@@ -10,6 +11,11 @@ type GradeOfferResult = {
   qualified: boolean;
   projectId?: string;
   error?: string;
+  // "llm" when OpenAI actually graded it, "heuristic" when the
+  // deterministic rubric-based fallback ran instead (no OPENAI_API_KEY,
+  // or the OpenAI call failed). Surfaced in the UI so the fallback never
+  // masquerades as the real grader.
+  graderMode: "llm" | "heuristic";
 };
 
 interface LogOutreachInput {
@@ -295,21 +301,6 @@ export async function deleteProject(projectId: string) {
   }
 }
 
-function generateMockGrade(sentence: string): GradeOfferResult {
-  const score = 70 + Math.floor(Math.random() * 26);
-  const qualified = score >= 85;
-
-  return {
-    score,
-    qualified,
-    feedback: qualified
-      ? "Clear to proceed"
-      : sentence.length < 40
-        ? "Vague buyer. Who exactly is this for?"
-        : "Too broad. Name a specific buyer, concrete product, and measurable outcome.",
-  };
-}
-
 export async function gradeOffer(sentence: string): Promise<GradeOfferResult> {
   try {
     const supabase = await createServerClient_();
@@ -324,6 +315,7 @@ export async function gradeOffer(sentence: string): Promise<GradeOfferResult> {
         feedback: "Unauthorized",
         qualified: false,
         error: "Unauthorized",
+        graderMode: "heuristic",
       };
     }
 
@@ -334,6 +326,7 @@ export async function gradeOffer(sentence: string): Promise<GradeOfferResult> {
         score: 0,
         feedback: validation.reason!,
         qualified: false,
+        graderMode: "heuristic",
       };
     }
 
@@ -411,6 +404,7 @@ export async function gradeOffer(sentence: string): Promise<GradeOfferResult> {
                   feedback: "Could not create project after approval.",
                   qualified: false,
                   error: error.message,
+                  graderMode: "llm",
                 };
               }
 
@@ -419,20 +413,25 @@ export async function gradeOffer(sentence: string): Promise<GradeOfferResult> {
                 feedback: "Clear to proceed",
                 qualified: true,
                 projectId: data.id,
+                graderMode: "llm",
               };
             }
 
-            return { score, feedback, qualified: false };
+            return { score, feedback, qualified: false, graderMode: "llm" };
           }
         }
       } catch (error) {
-        console.error("OpenAI grading failed, using mock fallback:", error);
+        console.error(
+          "OpenAI grading failed, using heuristic fallback:",
+          error,
+        );
       }
     }
 
-    const graded = generateMockGrade(trimmedSentence);
+    const heuristic = heuristicGradeOffer(trimmedSentence);
+    const qualified = heuristic.score >= 85;
 
-    if (graded.qualified) {
+    if (qualified) {
       const { data, error } = await supabase
         .from("projects")
         .insert({
@@ -440,7 +439,7 @@ export async function gradeOffer(sentence: string): Promise<GradeOfferResult> {
           name: trimmedSentence.slice(0, 80),
           description: trimmedSentence,
           offer_sentence: trimmedSentence,
-          offer_score: graded.score,
+          offer_score: heuristic.score,
           status: "in_gauntlet",
         })
         .select()
@@ -448,17 +447,23 @@ export async function gradeOffer(sentence: string): Promise<GradeOfferResult> {
 
       if (error) {
         return {
-          score: graded.score,
+          score: heuristic.score,
           feedback: "Could not create project after approval.",
           qualified: false,
           error: error.message,
+          graderMode: "heuristic",
         };
       }
 
-      return { ...graded, projectId: data.id };
+      return {
+        ...heuristic,
+        qualified,
+        projectId: data.id,
+        graderMode: "heuristic",
+      };
     }
 
-    return graded;
+    return { ...heuristic, qualified, graderMode: "heuristic" };
   } catch (error) {
     console.error("Offer grading error:", error);
     return {
@@ -466,6 +471,7 @@ export async function gradeOffer(sentence: string): Promise<GradeOfferResult> {
       feedback: "Unable to grade offer right now.",
       qualified: false,
       error: "An error occurred",
+      graderMode: "heuristic",
     };
   }
 }
