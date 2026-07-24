@@ -67,7 +67,7 @@ cp .env.local.example .env.local
 | --------------------------------- | -------------- | -------------------------------------------- | ----- |
 | `NEXT_PUBLIC_SUPABASE_URL`       | **Required**   | `lib/supabase/client.ts`, `lib/supabase/server.ts`, `middleware.ts` | Project URL from Supabase → Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`  | **Required**   | Same as above                                | Anon/public key — safe to expose client-side because RLS enforces access |
-| `OPENAI_API_KEY`                 | Optional       | `app/actions.ts` (`gradeOffer`)             | Enables real LLM grading. Without it, every offer is graded by a **mock grader that returns a random score 70–95** — see the red-team findings, this is a real gap in the free-tier product |
+| `OPENAI_API_KEY`                 | Optional       | `app/actions.ts` (`gradeOffer`)             | Enables real LLM grading. Without it, `lib/gradeOfferHeuristic.ts` grades deterministically against the same Buyer/Product/Offer rubric instead of the old random 70–95 fallback — see Section 8 |
 | `OPENAI_MODEL`                   | Optional       | `app/actions.ts`                            | Defaults to `gpt-4o-mini` if unset |
 | `SUPABASE_SERVICE_ROLE_KEY`      | **Not currently used** | Nowhere in the code today          | Present in `.env.local.example` and every doc's "required" list, but no file reads `process.env.SUPABASE_SERVICE_ROLE_KEY`. Keep it out of any client-exposed context if you do wire it up later — it bypasses RLS entirely |
 | `NEXT_PUBLIC_APP_URL`            | **Not currently used** | Nowhere in the code today          | Same situation — dead config. The signup page now builds its redirect URL from `window.location.origin` instead |
@@ -243,6 +243,17 @@ See the full red-team report for details. In short, these were fixed:
    before forwarding user text to the OpenAI API — a cost/abuse vector on
    a free, unauthenticated-cost server action. Added a 500-character cap
    (`lib/validateOfferSentence.ts`, tested).
+8. **Mock grader was a coin flip**: without `OPENAI_API_KEY`, every offer
+   was scored by `Math.random()` over 70–95 — roughly 42% passed
+   regardless of content, on a product whose entire pitch is a "ruthless"
+   quality gate. Replaced with `lib/gradeOfferHeuristic.ts`, a
+   deterministic scorer that checks for the same Buyer/Product/Offer
+   signals the OpenAI rubric asks for (specific buyer vs. generic
+   catch-all, a concrete product noun vs. buzzwords, a measurable outcome
+   vs. a vague verb, a multi-sentence penalty). `gradeOffer` now returns
+   which grader ran (`graderMode: "llm" | "heuristic"`), and the
+   onboarding page shows a small note when the heuristic produced the
+   score instead of silently passing it off as the real thing.
 
 Full details, severity ratings, and what's still open: see the red-team
 findings delivered alongside this manual.
